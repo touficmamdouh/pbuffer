@@ -24,7 +24,11 @@ final class Message_Builder {
                 ENT_QUOTES,
                 'UTF-8'
             );
-            $content = preg_replace( '/<[^>]+>/', ' ', $content );
+            $content = preg_replace(
+                '/<\/(p|div|h[1-6]|li|blockquote|tr)>/i',
+                '$0 ',
+                $content
+            );
             $excerpt = wp_trim_words( wp_strip_all_tags( $content ), 20 );
         }
 
