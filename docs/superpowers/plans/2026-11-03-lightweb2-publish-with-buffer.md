@@ -3894,6 +3894,10 @@ final class Publisher {
                 continue;
             }
 
+            if ( (int) $row['attempts'] >= 4 ) {
+                continue;
+            }
+
             $this->schedule_delivery( $post_id, (string) $channel['id'], (int) $row['attempts'] + 1 );
         }
     }
@@ -4004,14 +4008,14 @@ final class Publisher {
             return false;
         }
 
+        if ( ! $this->deliveries->reset_for_retry( $delivery_id ) ) {
+            return false;
+        }
+
         $this->clear_delivery_events(
             (int) $row['post_id'],
             (string) $row['channel_id']
         );
-
-        if ( ! $this->deliveries->reset_for_retry( $delivery_id ) ) {
-            return false;
-        }
 
         if ( ! $this->schedule_delivery( (int) $row['post_id'], (string) $row['channel_id'], 1 ) ) {
             $this->deliveries->mark_failed(
@@ -4241,6 +4245,7 @@ Add these focused tests before running the full suite:
 - `Test_Publisher`: `recover_stale()` marks an old `sending` row failed and schedules the next attempt.
 - `Test_Publisher`: `recover_stale()` does not overwrite a row that became `sent` after the stale query.
 - `Test_Publisher`: `maybe_publish()` does not schedule dead events for `canceled` rows.
+- `Test_Publisher`: `maybe_publish()` does not schedule a fifth attempt for a row already at four attempts.
 
 Expected: all focused tests pass, including the existing happy-path tests.
 

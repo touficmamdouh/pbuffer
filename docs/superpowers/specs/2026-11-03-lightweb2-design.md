@@ -288,8 +288,8 @@ Every retry uses the same delivery row and the same unique key. A successful cha
 1. Verify nonce and `manage_options`.
 2. Load the row.
 3. Allow retry only when the status is `failed`.
-4. Clear pending delivery events for that post and channel so an old attempt cannot join the new cycle.
-5. Atomically reset the row to `pending` and the attempt cycle to zero only if it is still `failed`.
+4. Atomically reset the row to `pending` and the attempt cycle to zero only if it is still `failed`.
+5. Clear pending delivery events for that post and channel so an old attempt cannot join the new cycle.
 6. Schedule attempt one immediately.
 
 Manual retry is not blocked by the automatic maximum. It resets the stored attempt count to zero, marks the row pending, and schedules attempt one. The automatic four-attempt limit applies again to the new manual cycle.
