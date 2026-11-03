@@ -276,6 +276,29 @@ final class Test_Publisher extends WP_UnitTestCase {
         );
     }
 
+    public function test_publish_does_not_schedule_fifth_attempt_for_capped_row(): void {
+        $post_id = $this->published_post();
+        $this->publisher->maybe_publish( $post_id, get_post( $post_id ), true, $this->draft_before() );
+        $this->mock_server_error();
+
+        for ( $attempt = 1; $attempt <= 4; $attempt++ ) {
+            $this->publisher->deliver( $post_id, 'c1', $attempt );
+        }
+
+        $capped = $this->deliveries->get_by_post_channel( $post_id, 'c1' );
+        $this->assertSame( 4, (int) $capped['attempts'] );
+
+        wp_unschedule_hook( 'lightweb2_deliver_channel' );
+        $this->publisher->maybe_publish( $post_id, get_post( $post_id ), true, $this->draft_before() );
+        $row = $this->deliveries->get_by_post_channel( $post_id, 'c1' );
+
+        $this->assertSame( 'failed', $row['status'] );
+        $this->assertSame( 4, (int) $row['attempts'] );
+        $this->assertFalse(
+            wp_next_scheduled( 'lightweb2_deliver_channel', [ $post_id, 'c1', 5 ] )
+        );
+    }
+
     public function test_stale_event_does_not_claim_or_call_buffer(): void {
         $post_id = $this->published_post();
         $this->publisher->maybe_publish( $post_id, get_post( $post_id ), true, $this->draft_before() );

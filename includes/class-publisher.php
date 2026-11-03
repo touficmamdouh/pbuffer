@@ -89,6 +89,10 @@ final class Publisher {
                 continue;
             }
 
+            if ( (int) $row['attempts'] >= 4 ) {
+                continue;
+            }
+
             $this->schedule_delivery( $post_id, (string) $channel['id'], (int) $row['attempts'] + 1 );
         }
     }
@@ -199,14 +203,14 @@ final class Publisher {
             return false;
         }
 
+        if ( ! $this->deliveries->reset_for_retry( $delivery_id ) ) {
+            return false;
+        }
+
         $this->clear_delivery_events(
             (int) $row['post_id'],
             (string) $row['channel_id']
         );
-
-        if ( ! $this->deliveries->reset_for_retry( $delivery_id ) ) {
-            return false;
-        }
 
         if ( ! $this->schedule_delivery( (int) $row['post_id'], (string) $row['channel_id'], 1 ) ) {
             $this->deliveries->mark_failed(
