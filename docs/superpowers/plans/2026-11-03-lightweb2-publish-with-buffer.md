@@ -3881,7 +3881,7 @@ final class Publisher {
         foreach ( $settings['channels'] as $channel ) {
             $row = $this->deliveries->create_or_get( $post_id, $channel, $mode );
 
-            if ( empty( $row ) || 'sent' === $row['status'] ) {
+            if ( empty( $row ) || in_array( $row['status'], [ 'sent', 'canceled' ], true ) ) {
                 continue;
             }
 
@@ -4004,7 +4004,14 @@ final class Publisher {
             return false;
         }
 
-        $this->deliveries->reset_for_retry( $delivery_id );
+        $this->clear_delivery_events(
+            (int) $row['post_id'],
+            (string) $row['channel_id']
+        );
+
+        if ( ! $this->deliveries->reset_for_retry( $delivery_id ) ) {
+            return false;
+        }
 
         if ( ! $this->schedule_delivery( (int) $row['post_id'], (string) $row['channel_id'], 1 ) ) {
             $this->deliveries->mark_failed(
@@ -4020,11 +4027,9 @@ final class Publisher {
 
     public function recover_stale(): void {
         foreach ( $this->deliveries->get_stale_sending( 15 ) as $row ) {
-            $this->deliveries->mark_failed(
-                (int) $row['id'],
-                'stale_claim',
-                __( 'The delivery was interrupted and will be retried.', 'lightweb2-publish-with-buffer' )
-            );
+            if ( ! $this->deliveries->mark_stale( (int) $row['id'], 15 ) ) {
+                continue;
+            }
 
             if ( (int) $row['attempts'] < 4 ) {
                 $this->schedule_delivery(
@@ -4039,6 +4044,15 @@ final class Publisher {
     public function cleanup_logs(): void {
         $days = (int) $this->settings->get()['retention_days'];
         $this->deliveries->delete_older_than_days( $days );
+    }
+
+    private function clear_delivery_events( int $post_id, string $channel_id ): void {
+        for ( $attempt = 1; $attempt <= 4; $attempt++ ) {
+            wp_clear_scheduled_hook(
+                'lightweb2_deliver_channel',
+                [ $post_id, $channel_id, $attempt ]
+            );
+        }
     }
 
     private function schedule_delivery(
@@ -4093,16 +4107,51 @@ Add these methods to `includes/class-deliveries.php`:
         return 1 === (int) $updated;
     }
 
-    public function reset_for_retry( int $id ): void {
-        $this->update(
-            $id,
-            [
-                'status'        => 'pending',
-                'attempts'      => 0,
-                'error_code'    => null,
-                'error_message' => null,
-            ]
+    public function reset_for_retry( int $id ): bool {
+        global $wpdb;
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table.
+        $updated = $wpdb->query(
+            $wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Plugin-owned table name.
+                "UPDATE {$this->table}
+                 SET status = 'pending', attempts = 0,
+                     error_code = NULL, error_message = NULL, updated_at = %s
+                 WHERE id = %d AND status = 'failed'",
+                current_time( 'mysql', true ),
+                $id
+            )
         );
+
+        return 1 === (int) $updated;
+    }
+
+    public function mark_stale( int $id, int $minutes = 15 ): bool {
+        global $wpdb;
+
+        $cutoff = gmdate(
+            'Y-m-d H:i:s',
+            time() - ( max( 1, $minutes ) * MINUTE_IN_SECONDS )
+        );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table.
+        $updated = $wpdb->query(
+            $wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Plugin-owned table name.
+                "UPDATE {$this->table}
+                 SET status = 'failed', error_code = 'stale_claim',
+                     error_message = %s, updated_at = %s
+                 WHERE id = %d
+                   AND status = 'sending'
+                   AND updated_at < %s",
+                __( 'The delivery was interrupted and will be retried.', 'lightweb2-publish-with-buffer' ),
+                current_time( 'mysql', true ),
+                $id,
+                $cutoff
+            )
+        );
+
+        return 1 === (int) $updated;
     }
 
     public function get_stale_sending( int $minutes = 15 ): array {
@@ -4182,12 +4231,16 @@ Add these focused tests before running the full suite:
 
 - `Test_Deliveries`: `claim()` succeeds once, rejects a second claim while the row is `sending`, and rejects a stale attempt number.
 - `Test_Deliveries`: `reset_for_retry()` clears attempts and error fields and sets `pending`.
+- `Test_Deliveries`: `reset_for_retry()` returns false and leaves a `sending` row untouched.
 - `Test_Deliveries`: `get_stale_sending()` returns only claimed rows older than the cutoff.
 - `Test_Publisher`: a 401 or typed mutation failure marks `failed` and schedules no retry.
 - `Test_Publisher`: four failed attempts leave `attempts = 4` and schedule no fifth automatic event.
 - `Test_Publisher`: a stale event attempt makes no HTTP call and leaves the row untouched.
 - `Test_Publisher`: manual retry resets attempts to zero and schedules attempt one.
+- `Test_Publisher`: manual retry clears old attempt events for the same post/channel.
 - `Test_Publisher`: `recover_stale()` marks an old `sending` row failed and schedules the next attempt.
+- `Test_Publisher`: `recover_stale()` does not overwrite a row that became `sent` after the stale query.
+- `Test_Publisher`: `maybe_publish()` does not schedule dead events for `canceled` rows.
 
 Expected: all focused tests pass, including the existing happy-path tests.
 

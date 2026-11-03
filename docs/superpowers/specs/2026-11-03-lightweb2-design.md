@@ -288,14 +288,15 @@ Every retry uses the same delivery row and the same unique key. A successful cha
 1. Verify nonce and `manage_options`.
 2. Load the row.
 3. Allow retry only when the status is `failed`.
-4. Reset the row to `pending` and reset the attempt cycle to zero.
-5. Schedule the worker immediately.
+4. Clear pending delivery events for that post and channel so an old attempt cannot join the new cycle.
+5. Atomically reset the row to `pending` and the attempt cycle to zero only if it is still `failed`.
+6. Schedule attempt one immediately.
 
 Manual retry is not blocked by the automatic maximum. It resets the stored attempt count to zero, marks the row pending, and schedules attempt one. The automatic four-attempt limit applies again to the new manual cycle.
 
 ### Stale Worker Recovery
 
-A worker can be interrupted after claiming a row and before writing the result. An hourly `lightweb2_recover_stale` event finds rows in `sending` state older than 15 minutes, marks them failed with code `stale_claim`, and schedules the next attempt when the stored attempt count is below four.
+A worker can be interrupted after claiming a row and before writing the result. An hourly `lightweb2_recover_stale` event finds rows in `sending` state older than 15 minutes. It marks a row failed with code `stale_claim` using a conditional update that succeeds only while the row is still stale and `sending`, then schedules the next attempt when the stored attempt count is below four. The conditional update prevents recovery from overwriting a row that finished as `sent` or `canceled` after the stale query.
 
 ### Log Retention
 
