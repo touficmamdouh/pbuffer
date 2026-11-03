@@ -76,7 +76,7 @@ final class Admin {
                 <span class="lightweb2-version">v<?php echo esc_html( LIGHTWEB2_VERSION ); ?></span>
             </header>
 
-            <?php settings_errors( 'lightweb2' ); ?>
+            <?php settings_errors(); ?>
 
             <form action="options.php" method="post" class="lightweb2-form">
                 <?php settings_fields( 'lightweb2_settings_group' ); ?>

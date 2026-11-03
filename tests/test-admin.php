@@ -27,4 +27,17 @@ final class Test_Admin extends WP_UnitTestCase {
         $this->assertStringContainsString( 'Token is set', $html );
         $this->assertStringNotContainsString( 'secret-token-value', $html );
     }
+
+    public function test_settings_page_renders_general_settings_notices(): void {
+        wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+        add_settings_error( 'general', 'lightweb2_test_notice', 'General notice visible' );
+
+        $admin = new Admin( new Settings() );
+
+        ob_start();
+        $admin->render_settings_page();
+        $html = (string) ob_get_clean();
+
+        $this->assertStringContainsString( 'General notice visible', $html );
+    }
 }
