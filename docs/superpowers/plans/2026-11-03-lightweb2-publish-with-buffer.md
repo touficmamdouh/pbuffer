@@ -547,8 +547,8 @@ git commit -m "feat: add LightWeb2 bootstrap, installer, and test harness"
 - Consumes: `Settings::OPTION`, `Settings::defaults()`, `Settings::catalog_key()`
 - Produces: `Settings::register(): void`
 - Produces: `Settings::get(): array`
-- Produces: `Settings::sanitize( mixed $input ): array`
-- Produces: `Settings::sanitize_channels( mixed $input ): array`
+- Produces: `Settings::sanitize( $input ): array`
+- Produces: `Settings::sanitize_channels( $input ): array`
 
 - [ ] **Step 1: Write the failing settings tests**
 
@@ -631,6 +631,17 @@ final class Test_Settings extends WP_UnitTestCase {
         );
 
         $this->assertSame( 'addToQueue', $result['default_mode'] );
+    }
+
+    public function test_valid_share_now_mode_is_preserved(): void {
+        $result = $this->settings->sanitize(
+            [
+                'token'        => '',
+                'default_mode' => 'shareNow',
+            ]
+        );
+
+        $this->assertSame( 'shareNow', $result['default_mode'] );
     }
 
     public function test_retention_days_are_clamped(): void {
@@ -722,7 +733,7 @@ final class Settings {
         return 'lightweb2_channels_' . substr( md5( $token ), 0, 12 );
     }
 
-    public function sanitize( mixed $input ): array {
+    public function sanitize( $input ): array {
         $input   = is_array( $input ) ? $input : [];
         $current = $this->get();
 
@@ -755,7 +766,7 @@ final class Settings {
         }
 
         $mode = isset( $input['default_mode'] )
-            ? sanitize_key( (string) $input['default_mode'] )
+            ? sanitize_text_field( (string) $input['default_mode'] )
             : (string) $current['default_mode'];
 
         if ( ! in_array( $mode, [ 'shareNow', 'addToQueue' ], true ) ) {
@@ -788,7 +799,7 @@ final class Settings {
         ];
     }
 
-    public function sanitize_channels( mixed $input ): array {
+    public function sanitize_channels( $input ): array {
         if ( ! is_array( $input ) ) {
             return [];
         }
@@ -1748,7 +1759,7 @@ git commit -m "feat: add Buffer GraphQL client"
 - Consumes: `Buffer_Client`, `Settings::catalog_key()`
 - Produces: `Admin::__construct( Settings $settings, Buffer_Client $client )`
 - Produces: AJAX actions `lightweb2_test_connection`, `lightweb2_fetch_channels`, `lightweb2_disconnect`
-- Produces: `Settings::sanitize_channels( mixed $input, string $token = '' ): array`
+- Produces: `Settings::sanitize_channels( $input, string $token = '' ): array`
 
 - [ ] **Step 1: Add the failing channel-ID sanitization test**
 
@@ -1930,7 +1941,7 @@ Expected: FAIL because the AJAX actions and channel ID resolution do not exist.
 Replace `sanitize_channels()` in `includes/class-settings.php` with:
 
 ```php
-    public function sanitize_channels( mixed $input, string $token = '' ): array {
+    public function sanitize_channels( $input, string $token = '' ): array {
         if ( ! is_array( $input ) ) {
             return [];
         }
@@ -3207,7 +3218,7 @@ final class Meta_Box {
 
         $enabled = isset( $_POST['lightweb2_enabled'] ) ? 'yes' : 'no';
         $mode    = isset( $_POST['lightweb2_mode'] )
-            ? sanitize_key( wp_unslash( (string) $_POST['lightweb2_mode'] ) )
+            ? sanitize_text_field( wp_unslash( (string) $_POST['lightweb2_mode'] ) )
             : 'addToQueue';
 
         if ( ! in_array( $mode, [ 'shareNow', 'addToQueue' ], true ) ) {
