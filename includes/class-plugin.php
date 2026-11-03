@@ -8,6 +8,7 @@ final class Plugin {
     private static ?Plugin $instance = null;
 
     private Settings $settings;
+    private Admin $admin;
 
     public static function instance(): Plugin {
         if ( null === self::$instance ) {
@@ -19,6 +20,9 @@ final class Plugin {
 
     public function boot(): void {
         $this->settings = new Settings();
+        $this->admin    = new Admin( $this->settings );
+
         $this->settings->register();
+        $this->admin->register();
     }
 }
