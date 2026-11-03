@@ -34,7 +34,7 @@ final class Plugin {
             $this->client,
             $this->builder
         );
-        $this->admin      = new Admin( $this->settings, $this->client );
+        $this->admin      = new Admin( $this->settings, $this->client, $this->deliveries, $this->publisher );
         $this->meta_box   = new Meta_Box( $this->settings, $this->deliveries );
 
         $this->settings->register();

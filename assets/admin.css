@@ -185,6 +185,62 @@
   color: var(--lightweb2-muted);
 }
 
+.lightweb2-filters {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.lightweb2-filters label {
+  display: grid;
+  gap: 4px;
+}
+
+.lightweb2-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.lightweb2-badge.is-sent {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.lightweb2-badge.is-failed {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.lightweb2-badge.is-pending {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+.lightweb2-badge.is-sending {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.lightweb2-badge.is-canceled {
+  color: #475569;
+  background: #e2e8f0;
+}
+
+.lightweb2-error {
+  display: block;
+  margin-top: 4px;
+  color: #b91c1c;
+}
+
+.lightweb2-activity-table td {
+  vertical-align: top;
+}
+
 @media (max-width: 782px) {
   .lightweb2-header {
     flex-direction: column;
@@ -192,6 +248,10 @@
 
   .lightweb2-card {
     padding: 16px;
+  }
+
+  .lightweb2-filters {
+    display: grid;
   }
 }
 

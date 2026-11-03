@@ -3,12 +3,18 @@ declare( strict_types=1 );
 
 use LightWeb2\PublishWithBuffer\Admin;
 use LightWeb2\PublishWithBuffer\Buffer_Client;
+use LightWeb2\PublishWithBuffer\Deliveries;
+use LightWeb2\PublishWithBuffer\Message_Builder;
+use LightWeb2\PublishWithBuffer\Publisher;
 use LightWeb2\PublishWithBuffer\Settings;
 
 final class Test_Admin_Ajax extends WP_Ajax_UnitTestCase {
 
     public function set_up(): void {
         parent::set_up();
+        remove_action( 'admin_init', '_maybe_update_core' );
+        remove_action( 'admin_init', '_maybe_update_plugins' );
+        remove_action( 'admin_init', '_maybe_update_themes' );
         update_option(
             Settings::OPTION,
             [
@@ -24,7 +30,15 @@ final class Test_Admin_Ajax extends WP_Ajax_UnitTestCase {
     }
 
     private function admin(): Admin {
-        return new Admin( new Settings(), new Buffer_Client() );
+        $settings   = new Settings();
+        $deliveries = new Deliveries();
+
+        return new Admin(
+            $settings,
+            new Buffer_Client(),
+            $deliveries,
+            new Publisher( $settings, $deliveries, new Buffer_Client(), new Message_Builder() )
+        );
     }
 
     private function prepare_nonce(): void {

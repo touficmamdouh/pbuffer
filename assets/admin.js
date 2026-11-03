@@ -138,6 +138,36 @@
     }
   });
 
+  document.querySelectorAll('.lightweb2-retry').forEach((button) => {
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      setAjaxStatus(cfg.strings.loading);
+
+      try {
+        await request('lightweb2_retry_delivery', {
+          delivery_id: button.dataset.deliveryId,
+        });
+        window.location.reload();
+      } catch (error) {
+        button.disabled = false;
+        setAjaxStatus(error.message, true);
+      }
+    });
+  });
+
+  byId('lightweb2-clear-logs')?.addEventListener('click', async () => {
+    if (!window.confirm(cfg.strings.confirmClearLogs)) {
+      return;
+    }
+
+    try {
+      await request('lightweb2_clear_logs');
+      window.location.reload();
+    } catch (error) {
+      setAjaxStatus(error.message, true);
+    }
+  });
+
   const updatePreview = () => {
     if (!template || !preview) {
       return;

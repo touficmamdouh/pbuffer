@@ -7,10 +7,19 @@ final class Admin {
 
     private Settings $settings;
     private Buffer_Client $client;
+    private Deliveries $deliveries;
+    private Publisher $publisher;
 
-    public function __construct( Settings $settings, Buffer_Client $client ) {
-        $this->settings = $settings;
-        $this->client   = $client;
+    public function __construct(
+        Settings $settings,
+        Buffer_Client $client,
+        Deliveries $deliveries,
+        Publisher $publisher
+    ) {
+        $this->settings   = $settings;
+        $this->client     = $client;
+        $this->deliveries = $deliveries;
+        $this->publisher  = $publisher;
     }
 
     public function register(): void {
@@ -19,6 +28,8 @@ final class Admin {
         add_action( 'wp_ajax_lightweb2_test_connection', [ $this, 'ajax_test_connection' ] );
         add_action( 'wp_ajax_lightweb2_fetch_channels', [ $this, 'ajax_fetch_channels' ] );
         add_action( 'wp_ajax_lightweb2_disconnect', [ $this, 'ajax_disconnect' ] );
+        add_action( 'wp_ajax_lightweb2_retry_delivery', [ $this, 'ajax_retry_delivery' ] );
+        add_action( 'wp_ajax_lightweb2_clear_logs', [ $this, 'ajax_clear_logs' ] );
     }
 
     public function register_menu(): void {
@@ -39,6 +50,15 @@ final class Admin {
             'manage_options',
             'lightweb2',
             [ $this, 'render_settings_page' ]
+        );
+
+        add_submenu_page(
+            'lightweb2',
+            __( 'Activity', 'lightweb2-publish-with-buffer' ),
+            __( 'Activity', 'lightweb2-publish-with-buffer' ),
+            'manage_options',
+            'lightweb2-activity',
+            [ $this, 'render_activity_page' ]
         );
     }
 
@@ -344,5 +364,166 @@ final class Admin {
             </form>
         </div>
         <?php
+    }
+
+    public function render_activity_page(): void {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
+        $status     = isset( $_GET['status'] ) ? sanitize_key( wp_unslash( (string) $_GET['status'] ) ) : '';
+        $channel_id = isset( $_GET['channel_id'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['channel_id'] ) ) : '';
+        $date_from  = isset( $_GET['date_from'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['date_from'] ) ) : '';
+        $date_to    = isset( $_GET['date_to'] ) ? sanitize_text_field( wp_unslash( (string) $_GET['date_to'] ) ) : '';
+        $page       = isset( $_GET['paged'] )
+            ? max( 1, absint( wp_unslash( (string) $_GET['paged'] ) ) )
+            : 1;
+        $per_page   = 20;
+
+        $args = [
+            'status'     => $status,
+            'channel_id' => $channel_id,
+            'date_from'  => $date_from ? $date_from . ' 00:00:00' : '',
+            'date_to'    => $date_to ? $date_to . ' 23:59:59' : '',
+            'per_page'   => $per_page,
+            'page'       => $page,
+        ];
+
+        $rows  = $this->deliveries->get_recent( $args );
+        $total = $this->deliveries->count_recent( $args );
+        $pages = max( 1, (int) ceil( $total / $per_page ) );
+        ?>
+        <div class="wrap lightweb2-wrap">
+            <header class="lightweb2-header">
+                <div>
+                    <p class="lightweb2-eyebrow"><?php esc_html_e( 'LightWeb2', 'lightweb2-publish-with-buffer' ); ?></p>
+                    <h1><?php esc_html_e( 'Activity', 'lightweb2-publish-with-buffer' ); ?></h1>
+                    <p class="lightweb2-lede"><?php esc_html_e( 'Every Buffer delivery attempt, with the reason it failed and a safe retry action.', 'lightweb2-publish-with-buffer' ); ?></p>
+                </div>
+                <button type="button" class="button" id="lightweb2-clear-logs"><?php esc_html_e( 'Clear history', 'lightweb2-publish-with-buffer' ); ?></button>
+            </header>
+
+            <form method="get" class="lightweb2-card lightweb2-filters">
+                <input type="hidden" name="page" value="lightweb2-activity" />
+                <label>
+                    <span><?php esc_html_e( 'Status', 'lightweb2-publish-with-buffer' ); ?></span>
+                    <select name="status">
+                        <option value=""><?php esc_html_e( 'All statuses', 'lightweb2-publish-with-buffer' ); ?></option>
+                        <?php foreach ( [ 'pending', 'sending', 'sent', 'failed', 'canceled' ] as $option ) : ?>
+                            <option value="<?php echo esc_attr( $option ); ?>" <?php selected( $status, $option ); ?>><?php echo esc_html( ucfirst( $option ) ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+                <label>
+                    <span><?php esc_html_e( 'Channel ID', 'lightweb2-publish-with-buffer' ); ?></span>
+                    <input type="text" name="channel_id" value="<?php echo esc_attr( $channel_id ); ?>" />
+                </label>
+                <label>
+                    <span><?php esc_html_e( 'From', 'lightweb2-publish-with-buffer' ); ?></span>
+                    <input type="date" name="date_from" value="<?php echo esc_attr( $date_from ); ?>" />
+                </label>
+                <label>
+                    <span><?php esc_html_e( 'To', 'lightweb2-publish-with-buffer' ); ?></span>
+                    <input type="date" name="date_to" value="<?php echo esc_attr( $date_to ); ?>" />
+                </label>
+                <?php submit_button( __( 'Filter', 'lightweb2-publish-with-buffer' ), '', '', false ); ?>
+            </form>
+
+            <div class="lightweb2-card">
+                <?php if ( empty( $rows ) ) : ?>
+                    <p><?php esc_html_e( 'No deliveries yet. Publish a post with Buffer enabled to see activity here.', 'lightweb2-publish-with-buffer' ); ?></p>
+                <?php else : ?>
+                    <table class="widefat striped lightweb2-activity-table">
+                        <thead>
+                            <tr>
+                                <th><?php esc_html_e( 'Date', 'lightweb2-publish-with-buffer' ); ?></th>
+                                <th><?php esc_html_e( 'Post', 'lightweb2-publish-with-buffer' ); ?></th>
+                                <th><?php esc_html_e( 'Channel', 'lightweb2-publish-with-buffer' ); ?></th>
+                                <th><?php esc_html_e( 'Mode', 'lightweb2-publish-with-buffer' ); ?></th>
+                                <th><?php esc_html_e( 'Status', 'lightweb2-publish-with-buffer' ); ?></th>
+                                <th><?php esc_html_e( 'Attempts', 'lightweb2-publish-with-buffer' ); ?></th>
+                                <th><?php esc_html_e( 'Details', 'lightweb2-publish-with-buffer' ); ?></th>
+                                <th><?php esc_html_e( 'Action', 'lightweb2-publish-with-buffer' ); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ( $rows as $row ) : ?>
+                                <tr>
+                                    <td><?php echo esc_html( wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), strtotime( $row['created_at'] . ' UTC' ) ) ); ?></td>
+                                    <td>
+                                        <?php
+                                        $edit_link = get_edit_post_link( (int) $row['post_id'] );
+                                        $title     = get_the_title( (int) $row['post_id'] );
+                                        ?>
+                                        <?php if ( $edit_link ) : ?>
+                                            <a href="<?php echo esc_url( $edit_link ); ?>"><?php echo esc_html( $title ?: '#' . $row['post_id'] ); ?></a>
+                                        <?php else : ?>
+                                            <?php echo esc_html( $title ?: '#' . $row['post_id'] ); ?>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?php echo esc_html( $row['channel_name'] ?: $row['channel_id'] ); ?><br /><small><?php echo esc_html( $row['service'] ); ?></small></td>
+                                    <td><?php echo esc_html( $row['mode'] ); ?></td>
+                                    <td><span class="lightweb2-badge is-<?php echo esc_attr( $row['status'] ); ?>"><?php echo esc_html( ucfirst( $row['status'] ) ); ?></span></td>
+                                    <td><?php echo esc_html( (string) $row['attempts'] ); ?></td>
+                                    <td>
+                                        <?php if ( $row['buffer_post_id'] ) : ?>
+                                            <code><?php echo esc_html( $row['buffer_post_id'] ); ?></code>
+                                        <?php endif; ?>
+                                        <?php if ( $row['error_message'] ) : ?>
+                                            <span class="lightweb2-error"><?php echo esc_html( $row['error_message'] ); ?></span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php if ( 'failed' === $row['status'] ) : ?>
+                                            <button type="button" class="button button-small lightweb2-retry" data-delivery-id="<?php echo esc_attr( (string) $row['id'] ); ?>"><?php esc_html_e( 'Retry', 'lightweb2-publish-with-buffer' ); ?></button>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+
+                    <?php if ( $pages > 1 ) : ?>
+                        <div class="tablenav"><div class="tablenav-pages"><?php
+                        echo wp_kses_post(
+                            paginate_links(
+                                [
+                                    'base'    => add_query_arg( 'paged', '%#%' ),
+                                    'format'  => '',
+                                    'current' => $page,
+                                    'total'   => $pages,
+                                    'type'    => 'plain',
+                                ]
+                            )
+                        );
+                        ?></div></div>
+                    <?php endif; ?>
+                <?php endif; ?>
+            </div>
+            <p class="lightweb2-ajax-status" id="lightweb2-ajax-status" role="status" aria-live="polite"></p>
+        </div>
+        <?php
+    }
+
+    public function ajax_retry_delivery(): void {
+        $this->verify_ajax();
+        $delivery_id = isset( $_POST['delivery_id'] )
+            ? absint( wp_unslash( (string) $_POST['delivery_id'] ) )
+            : 0;
+
+        if ( $delivery_id < 1 || ! $this->publisher->retry( $delivery_id ) ) {
+            wp_send_json_error(
+                [ 'message' => __( 'This delivery cannot be retried.', 'lightweb2-publish-with-buffer' ) ],
+                400
+            );
+        }
+
+        wp_send_json_success();
+    }
+
+    public function ajax_clear_logs(): void {
+        $this->verify_ajax();
+        $this->deliveries->clear();
+        wp_send_json_success();
     }
 }

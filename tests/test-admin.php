@@ -3,9 +3,24 @@ declare( strict_types=1 );
 
 use LightWeb2\PublishWithBuffer\Admin;
 use LightWeb2\PublishWithBuffer\Buffer_Client;
+use LightWeb2\PublishWithBuffer\Deliveries;
+use LightWeb2\PublishWithBuffer\Message_Builder;
+use LightWeb2\PublishWithBuffer\Publisher;
 use LightWeb2\PublishWithBuffer\Settings;
 
 final class Test_Admin extends WP_UnitTestCase {
+
+    private function admin(): Admin {
+        $settings   = new Settings();
+        $deliveries = new Deliveries();
+
+        return new Admin(
+            $settings,
+            new Buffer_Client(),
+            $deliveries,
+            new Publisher( $settings, $deliveries, new Buffer_Client(), new Message_Builder() )
+        );
+    }
 
     public function tear_down(): void {
         wp_dequeue_script( 'lightweb2-admin' );
@@ -23,7 +38,7 @@ final class Test_Admin extends WP_UnitTestCase {
             ] + Settings::defaults()
         );
 
-        $admin = new Admin( new Settings(), new Buffer_Client() );
+        $admin = $this->admin();
 
         ob_start();
         $admin->render_settings_page();
@@ -39,7 +54,7 @@ final class Test_Admin extends WP_UnitTestCase {
         wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
         add_settings_error( 'general', 'lightweb2_test_notice', 'General notice visible' );
 
-        $admin = new Admin( new Settings(), new Buffer_Client() );
+        $admin = $this->admin();
 
         ob_start();
         $admin->render_settings_page();
@@ -60,7 +75,7 @@ final class Test_Admin extends WP_UnitTestCase {
             ] + Settings::defaults()
         );
 
-        $admin = new Admin( new Settings(), new Buffer_Client() );
+        $admin = $this->admin();
         $admin->enqueue_assets( 'toplevel_page_lightweb2' );
         $data = wp_scripts()->get_data( 'lightweb2-admin', 'data' );
 
@@ -72,7 +87,7 @@ final class Test_Admin extends WP_UnitTestCase {
     public function test_post_editor_enqueues_admin_style_only(): void {
         wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
 
-        $admin = new Admin( new Settings(), new Buffer_Client() );
+        $admin = $this->admin();
         $admin->enqueue_assets( 'post.php' );
 
         $this->assertTrue( wp_style_is( 'lightweb2-admin', 'enqueued' ) );
