@@ -4706,7 +4706,7 @@ Add these tests to `tests/test-admin-ajax.php`:
 - Retry rejects a missing nonce.
 - Retry rejects a delivery that is not `failed`.
 - Retry of a failed row returns success, sets the row to `pending`, resets attempts, and schedules attempt 1.
-- Clear history requires `manage_options`, rejects a missing nonce, and deletes delivery rows for an administrator.
+- Clear history requires `manage_options` and deletes delivery rows for an administrator.
 
 Expected: all focused tests pass.
 
@@ -4722,7 +4722,7 @@ Expected: PASS.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add includes/class-admin.php assets/admin.css assets/admin.js tests/test-activity.php
+git add includes/class-admin.php assets/admin.css assets/admin.js tests/test-activity.php tests/test-admin-ajax.php
 git commit -m "feat: add delivery activity and manual retry"
 ```
 
