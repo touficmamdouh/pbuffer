@@ -168,16 +168,23 @@ final class Deliveries {
         return 1 === (int) $updated;
     }
 
-    public function reset_for_retry( int $id ): void {
-        $this->update(
-            $id,
-            [
-                'status'        => 'pending',
-                'attempts'      => 0,
-                'error_code'    => null,
-                'error_message' => null,
-            ]
+    public function reset_for_retry( int $id ): bool {
+        global $wpdb;
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table.
+        $updated = $wpdb->query(
+            $wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Plugin-owned table name.
+                "UPDATE {$this->table}
+                 SET status = 'pending', attempts = 0,
+                     error_code = NULL, error_message = NULL, updated_at = %s
+                 WHERE id = %d AND status = 'failed'",
+                current_time( 'mysql', true ),
+                $id
+            )
         );
+
+        return 1 === (int) $updated;
     }
 
     public function get_stale_sending( int $minutes = 15 ): array {
@@ -200,6 +207,34 @@ final class Deliveries {
         );
 
         return is_array( $rows ) ? $rows : [];
+    }
+
+    public function mark_stale( int $id, int $minutes = 15 ): bool {
+        global $wpdb;
+
+        $cutoff = gmdate(
+            'Y-m-d H:i:s',
+            time() - ( max( 1, $minutes ) * MINUTE_IN_SECONDS )
+        );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table.
+        $updated = $wpdb->query(
+            $wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Plugin-owned table name.
+                "UPDATE {$this->table}
+                 SET status = 'failed', error_code = 'stale_claim',
+                     error_message = %s, updated_at = %s
+                 WHERE id = %d
+                   AND status = 'sending'
+                   AND updated_at < %s",
+                __( 'The delivery was interrupted and will be retried.', 'lightweb2-publish-with-buffer' ),
+                current_time( 'mysql', true ),
+                $id,
+                $cutoff
+            )
+        );
+
+        return 1 === (int) $updated;
     }
 
     public function get_recent( array $args = [] ): array {

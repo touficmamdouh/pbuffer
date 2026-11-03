@@ -76,13 +76,39 @@ final class Test_Deliveries extends WP_UnitTestCase {
         $this->deliveries->increment_attempts( (int) $row['id'] );
         $this->deliveries->mark_failed( (int) $row['id'], 'server_error', 'Try later' );
 
-        $this->deliveries->reset_for_retry( (int) $row['id'] );
+        $this->assertTrue( $this->deliveries->reset_for_retry( (int) $row['id'] ) );
 
         $reset = $this->deliveries->get( (int) $row['id'] );
         $this->assertSame( 'pending', $reset['status'] );
         $this->assertSame( 0, (int) $reset['attempts'] );
         $this->assertNull( $reset['error_code'] );
         $this->assertNull( $reset['error_message'] );
+    }
+
+    public function test_reset_for_retry_rejects_sending_row(): void {
+        $row = $this->deliveries->create_or_get( 18, $this->channel(), 'addToQueue' );
+        $this->assertTrue( $this->deliveries->claim( (int) $row['id'], 1 ) );
+        $before = $this->deliveries->get( (int) $row['id'] );
+
+        $this->assertFalse( $this->deliveries->reset_for_retry( (int) $row['id'] ) );
+        $this->assertSame( $before, $this->deliveries->get( (int) $row['id'] ) );
+    }
+
+    public function test_mark_stale_does_not_overwrite_sent_row(): void {
+        $row = $this->deliveries->create_or_get( 19, $this->channel(), 'addToQueue' );
+        $this->assertTrue( $this->deliveries->claim( (int) $row['id'], 1 ) );
+        $this->deliveries->mark_sent( (int) $row['id'], 'buffer-1' );
+
+        global $wpdb;
+        $wpdb->update(
+            $wpdb->prefix . 'lightweb2_deliveries',
+            [ 'updated_at' => gmdate( 'Y-m-d H:i:s', time() - 30 * MINUTE_IN_SECONDS ) ],
+            [ 'id' => (int) $row['id'] ]
+        );
+        $before = $this->deliveries->get( (int) $row['id'] );
+
+        $this->assertFalse( $this->deliveries->mark_stale( (int) $row['id'] ) );
+        $this->assertSame( $before, $this->deliveries->get( (int) $row['id'] ) );
     }
 
     public function test_get_stale_sending_returns_only_old_sending_rows(): void {

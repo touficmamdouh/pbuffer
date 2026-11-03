@@ -325,15 +325,38 @@ final class Test_Publisher extends WP_UnitTestCase {
         $row = $this->deliveries->get_by_post_channel( $post_id, 'c1' );
         $this->assertSame( 2, (int) $row['attempts'] );
 
-        wp_clear_scheduled_hook( 'lightweb2_deliver_channel' );
-
         $this->assertTrue( $this->publisher->retry( (int) $row['id'] ) );
         $retried = $this->deliveries->get_by_post_channel( $post_id, 'c1' );
 
         $this->assertSame( 'pending', $retried['status'] );
         $this->assertSame( 0, (int) $retried['attempts'] );
         $this->assertNull( $retried['error_code'] );
+        $this->assertFalse(
+            wp_next_scheduled( 'lightweb2_deliver_channel', [ $post_id, 'c1', 2 ] )
+        );
+        $this->assertFalse(
+            wp_next_scheduled( 'lightweb2_deliver_channel', [ $post_id, 'c1', 3 ] )
+        );
         $this->assertNotFalse(
+            wp_next_scheduled( 'lightweb2_deliver_channel', [ $post_id, 'c1', 1 ] )
+        );
+    }
+
+    public function test_canceled_delivery_is_not_rescheduled_by_publish(): void {
+        $post_id = $this->published_post();
+        $this->publisher->maybe_publish( $post_id, get_post( $post_id ), true, $this->draft_before() );
+        $row = $this->deliveries->get_by_post_channel( $post_id, 'c1' );
+        $this->deliveries->mark_canceled( (int) $row['id'] );
+        wp_clear_scheduled_hook( 'lightweb2_deliver_channel', [ $post_id, 'c1', 1 ] );
+        $this->assertFalse(
+            wp_next_scheduled( 'lightweb2_deliver_channel', [ $post_id, 'c1', 1 ] )
+        );
+
+        $this->publisher->maybe_publish( $post_id, get_post( $post_id ), true, $this->draft_before() );
+        $canceled = $this->deliveries->get_by_post_channel( $post_id, 'c1' );
+
+        $this->assertSame( 'canceled', $canceled['status'] );
+        $this->assertFalse(
             wp_next_scheduled( 'lightweb2_deliver_channel', [ $post_id, 'c1', 1 ] )
         );
     }

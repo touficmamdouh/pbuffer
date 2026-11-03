@@ -76,7 +76,7 @@ final class Publisher {
         foreach ( $settings['channels'] as $channel ) {
             $row = $this->deliveries->create_or_get( $post_id, $channel, $mode );
 
-            if ( empty( $row ) || 'sent' === $row['status'] ) {
+            if ( empty( $row ) || in_array( $row['status'], [ 'sent', 'canceled' ], true ) ) {
                 continue;
             }
 
@@ -199,7 +199,14 @@ final class Publisher {
             return false;
         }
 
-        $this->deliveries->reset_for_retry( $delivery_id );
+        $this->clear_delivery_events(
+            (int) $row['post_id'],
+            (string) $row['channel_id']
+        );
+
+        if ( ! $this->deliveries->reset_for_retry( $delivery_id ) ) {
+            return false;
+        }
 
         if ( ! $this->schedule_delivery( (int) $row['post_id'], (string) $row['channel_id'], 1 ) ) {
             $this->deliveries->mark_failed(
@@ -215,11 +222,9 @@ final class Publisher {
 
     public function recover_stale(): void {
         foreach ( $this->deliveries->get_stale_sending( 15 ) as $row ) {
-            $this->deliveries->mark_failed(
-                (int) $row['id'],
-                'stale_claim',
-                __( 'The delivery was interrupted and will be retried.', 'lightweb2-publish-with-buffer' )
-            );
+            if ( ! $this->deliveries->mark_stale( (int) $row['id'], 15 ) ) {
+                continue;
+            }
 
             if ( (int) $row['attempts'] < 4 ) {
                 $this->schedule_delivery(
@@ -234,6 +239,15 @@ final class Publisher {
     public function cleanup_logs(): void {
         $days = (int) $this->settings->get()['retention_days'];
         $this->deliveries->delete_older_than_days( $days );
+    }
+
+    private function clear_delivery_events( int $post_id, string $channel_id ): void {
+        for ( $attempt = 1; $attempt <= 4; $attempt++ ) {
+            wp_clear_scheduled_hook(
+                'lightweb2_deliver_channel',
+                [ $post_id, $channel_id, $attempt ]
+            );
+        }
     }
 
     private function schedule_delivery(
