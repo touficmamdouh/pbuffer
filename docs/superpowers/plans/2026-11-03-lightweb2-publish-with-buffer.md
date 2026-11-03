@@ -4447,8 +4447,12 @@ public function render_activity_page(): void {
     $args = [
         'status'     => $status,
         'channel_id' => $channel_id,
-        'date_from'  => $date_from ? $date_from . ' 00:00:00' : '',
-        'date_to'    => $date_to ? $date_to . ' 23:59:59' : '',
+        'date_from'  => $date_from
+            ? get_gmt_from_date( $date_from . ' 00:00:00' )
+            : '',
+        'date_to'    => $date_to
+            ? get_gmt_from_date( $date_to . ' 23:59:59' )
+            : '',
         'per_page'   => $per_page,
         'page'       => $page,
     ];
@@ -4694,7 +4698,19 @@ Append to `assets/admin.js` inside the existing IIFE, before the preview block:
   });
 ```
 
-- [ ] **Step 6: Run the Activity and full test suites**
+- [ ] **Step 6: Add AJAX endpoint tests**
+
+Add these tests to `tests/test-admin-ajax.php`:
+
+- Retry requires `manage_options` and makes no state change for a subscriber.
+- Retry rejects a missing nonce.
+- Retry rejects a delivery that is not `failed`.
+- Retry of a failed row returns success, sets the row to `pending`, resets attempts, and schedules attempt 1.
+- Clear history requires `manage_options`, rejects a missing nonce, and deletes delivery rows for an administrator.
+
+Expected: all focused tests pass.
+
+- [ ] **Step 7: Run the Activity and full test suites**
 
 ```bash
 composer test -- --filter 'Test_Activity|Test_Publisher|Test_Admin'
@@ -4703,7 +4719,7 @@ composer test
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add includes/class-admin.php assets/admin.css assets/admin.js tests/test-activity.php
