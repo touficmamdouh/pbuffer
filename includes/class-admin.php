@@ -383,8 +383,12 @@ final class Admin {
         $args = [
             'status'     => $status,
             'channel_id' => $channel_id,
-            'date_from'  => $date_from ? $date_from . ' 00:00:00' : '',
-            'date_to'    => $date_to ? $date_to . ' 23:59:59' : '',
+            'date_from'  => $date_from
+                ? get_gmt_from_date( $date_from . ' 00:00:00' )
+                : '',
+            'date_to'    => $date_to
+                ? get_gmt_from_date( $date_to . ' 23:59:59' )
+                : '',
             'per_page'   => $per_page,
             'page'       => $page,
         ];

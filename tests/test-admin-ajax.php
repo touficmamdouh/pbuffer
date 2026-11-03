@@ -4,6 +4,7 @@ declare( strict_types=1 );
 use LightWeb2\PublishWithBuffer\Admin;
 use LightWeb2\PublishWithBuffer\Buffer_Client;
 use LightWeb2\PublishWithBuffer\Deliveries;
+use LightWeb2\PublishWithBuffer\Installer;
 use LightWeb2\PublishWithBuffer\Message_Builder;
 use LightWeb2\PublishWithBuffer\Publisher;
 use LightWeb2\PublishWithBuffer\Settings;
@@ -12,6 +13,9 @@ final class Test_Admin_Ajax extends WP_Ajax_UnitTestCase {
 
     public function set_up(): void {
         parent::set_up();
+        Installer::create_table();
+        ( new Deliveries() )->clear();
+        wp_clear_scheduled_hook( 'lightweb2_deliver_channel' );
         remove_action( 'admin_init', '_maybe_update_core' );
         remove_action( 'admin_init', '_maybe_update_plugins' );
         remove_action( 'admin_init', '_maybe_update_themes' );
@@ -26,6 +30,7 @@ final class Test_Admin_Ajax extends WP_Ajax_UnitTestCase {
 
     public function tear_down(): void {
         remove_all_filters( 'pre_http_request' );
+        wp_clear_scheduled_hook( 'lightweb2_deliver_channel' );
         parent::tear_down();
     }
 
@@ -45,6 +50,18 @@ final class Test_Admin_Ajax extends WP_Ajax_UnitTestCase {
         $nonce                   = wp_create_nonce( 'lightweb2_admin' );
         $_REQUEST['nonce']       = $nonce;
         $_POST['nonce']          = $nonce;
+    }
+
+    private function failed_delivery(): array {
+        $deliveries = new Deliveries();
+        $row        = $deliveries->create_or_get(
+            60,
+            [ 'id' => 'c1', 'name' => 'Company LinkedIn', 'service' => 'linkedin' ],
+            'addToQueue'
+        );
+        $deliveries->mark_failed( (int) $row['id'], 'server_error', 'Try later' );
+
+        return $row;
     }
 
     public function test_test_connection_requires_manage_options(): void {
@@ -248,5 +265,141 @@ final class Test_Admin_Ajax extends WP_Ajax_UnitTestCase {
             ),
             [ 'no', 'off' ]
         );
+    }
+
+    public function test_retry_delivery_requires_manage_options(): void {
+        wp_set_current_user( self::factory()->user->create( [ 'role' => 'subscriber' ] ) );
+        $this->prepare_nonce();
+        $row = $this->failed_delivery();
+        $_POST['delivery_id'] = (string) $row['id'];
+
+        $requested = false;
+        add_filter(
+            'pre_http_request',
+            static function () use ( &$requested ): array {
+                $requested = true;
+
+                return [];
+            }
+        );
+
+        try {
+            $this->_handleAjax( 'lightweb2_retry_delivery' );
+        } catch ( WPAjaxDieContinueException $e ) {
+            // Expected after wp_send_json_error().
+        }
+
+        $response = json_decode( $this->_last_response, true );
+        $updated  = ( new Deliveries() )->get( (int) $row['id'] );
+
+        $this->assertFalse( $requested );
+        $this->assertFalse( $response['success'] );
+        $this->assertStringContainsString( 'not allowed', $response['data']['message'] );
+        $this->assertSame( 'failed', $updated['status'] );
+        $this->assertFalse( wp_next_scheduled( 'lightweb2_deliver_channel', [ 60, 'c1', 1 ] ) );
+    }
+
+    public function test_retry_delivery_rejects_missing_nonce(): void {
+        wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+        unset( $_POST['nonce'], $_REQUEST['nonce'] );
+        $row = $this->failed_delivery();
+        $_POST['delivery_id'] = (string) $row['id'];
+
+        $die_message = '';
+
+        try {
+            $this->_handleAjax( 'lightweb2_retry_delivery' );
+        } catch ( WPAjaxDieStopException $e ) {
+            $die_message = $e->getMessage();
+        }
+
+        $updated = ( new Deliveries() )->get( (int) $row['id'] );
+
+        $this->assertSame( '-1', $die_message );
+        $this->assertSame( 'failed', $updated['status'] );
+    }
+
+    public function test_retry_delivery_rejects_delivery_that_is_not_failed(): void {
+        wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+        $this->prepare_nonce();
+        $row = ( new Deliveries() )->create_or_get(
+            61,
+            [ 'id' => 'c1', 'name' => 'Company LinkedIn', 'service' => 'linkedin' ],
+            'addToQueue'
+        );
+        $_POST['delivery_id'] = (string) $row['id'];
+
+        try {
+            $this->_handleAjax( 'lightweb2_retry_delivery' );
+        } catch ( WPAjaxDieContinueException $e ) {
+            // Expected after wp_send_json_error().
+        }
+
+        $response = json_decode( $this->_last_response, true );
+        $updated  = ( new Deliveries() )->get( (int) $row['id'] );
+
+        $this->assertFalse( $response['success'] );
+        $this->assertSame( 'This delivery cannot be retried.', $response['data']['message'] );
+        $this->assertSame( 'pending', $updated['status'] );
+        $this->assertSame( 0, (int) $updated['attempts'] );
+        $this->assertFalse( wp_next_scheduled( 'lightweb2_deliver_channel', [ 61, 'c1', 1 ] ) );
+    }
+
+    public function test_retry_delivery_succeeds_for_failed_row(): void {
+        wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+        $this->prepare_nonce();
+        $row = $this->failed_delivery();
+        $_POST['delivery_id'] = (string) $row['id'];
+
+        try {
+            $this->_handleAjax( 'lightweb2_retry_delivery' );
+        } catch ( WPAjaxDieContinueException $e ) {
+            // Expected after wp_send_json_success().
+        }
+
+        $response = json_decode( $this->_last_response, true );
+        $updated  = ( new Deliveries() )->get( (int) $row['id'] );
+
+        $this->assertTrue( $response['success'] );
+        $this->assertSame( 'pending', $updated['status'] );
+        $this->assertSame( 0, (int) $updated['attempts'] );
+        $this->assertNotFalse( wp_next_scheduled( 'lightweb2_deliver_channel', [ 60, 'c1', 1 ] ) );
+    }
+
+    public function test_clear_logs_requires_manage_options(): void {
+        wp_set_current_user( self::factory()->user->create( [ 'role' => 'subscriber' ] ) );
+        $this->prepare_nonce();
+        $this->failed_delivery();
+
+        try {
+            $this->_handleAjax( 'lightweb2_clear_logs' );
+        } catch ( WPAjaxDieContinueException $e ) {
+            // Expected after wp_send_json_error().
+        }
+
+        $response = json_decode( $this->_last_response, true );
+        $count    = ( new Deliveries() )->count_recent();
+
+        $this->assertFalse( $response['success'] );
+        $this->assertStringContainsString( 'not allowed', $response['data']['message'] );
+        $this->assertSame( 1, $count );
+    }
+
+    public function test_clear_logs_deletes_rows_for_administrator(): void {
+        wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+        $this->prepare_nonce();
+        $this->failed_delivery();
+
+        try {
+            $this->_handleAjax( 'lightweb2_clear_logs' );
+        } catch ( WPAjaxDieContinueException $e ) {
+            // Expected after wp_send_json_success().
+        }
+
+        $response = json_decode( $this->_last_response, true );
+        $count    = ( new Deliveries() )->count_recent();
+
+        $this->assertTrue( $response['success'] );
+        $this->assertSame( 0, $count );
     }
 }

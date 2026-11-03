@@ -73,4 +73,43 @@ final class Test_Activity extends WP_UnitTestCase {
             wp_next_scheduled( 'lightweb2_deliver_channel', [ 51, 'c1', 1 ] )
         );
     }
+
+    public function test_local_date_filter_selects_delivery_using_utc_storage(): void {
+        global $wpdb;
+
+        wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+        update_option( 'timezone_string', 'America/New_York' );
+
+        $match = $this->deliveries->create_or_get(
+            52,
+            [ 'id' => 'c1', 'name' => 'Local Match', 'service' => 'linkedin' ],
+            'addToQueue'
+        );
+        $other = $this->deliveries->create_or_get(
+            53,
+            [ 'id' => 'c2', 'name' => 'Outside Range', 'service' => 'linkedin' ],
+            'addToQueue'
+        );
+
+        $wpdb->update(
+            $wpdb->prefix . 'lightweb2_deliveries',
+            [ 'created_at' => '2026-01-15 02:00:00' ],
+            [ 'id' => (int) $match['id'] ]
+        );
+        $wpdb->update(
+            $wpdb->prefix . 'lightweb2_deliveries',
+            [ 'created_at' => '2026-01-13 02:00:00' ],
+            [ 'id' => (int) $other['id'] ]
+        );
+
+        $_GET['date_from'] = '2026-01-14';
+        $_GET['date_to']   = '2026-01-14';
+
+        ob_start();
+        $this->admin->render_activity_page();
+        $html = (string) ob_get_clean();
+
+        $this->assertStringContainsString( 'Local Match', $html );
+        $this->assertStringNotContainsString( 'Outside Range', $html );
+    }
 }
