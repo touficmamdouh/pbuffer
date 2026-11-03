@@ -1,5 +1,6 @@
 /.git
 /.github
+/.superpowers
 /tests
 /docs
 /vendor
@@ -11,5 +12,7 @@
 /composer.lock
 /phpunit.xml.dist
 /phpcs.xml.dist
+/.phpcs.xml.dist
+/.phpunit.result.cache
 /.distignore
 /.gitignore

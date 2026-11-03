@@ -65,4 +65,23 @@ final class Test_Installer extends WP_UnitTestCase {
             )
         );
     }
+
+    public function test_uninstall_removes_settings_and_deliveries_table(): void {
+        global $wpdb;
+
+        Installer::activate();
+        Installer::uninstall();
+
+        $this->assertFalse( get_option( Settings::OPTION ) );
+        $this->assertNull(
+            $wpdb->get_var(
+                $wpdb->prepare(
+                    'SHOW TABLES LIKE %s',
+                    $wpdb->esc_like( $wpdb->prefix . 'lightweb2_deliveries' )
+                )
+            )
+        );
+
+        Installer::activate();
+    }
 }

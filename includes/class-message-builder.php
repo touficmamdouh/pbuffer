@@ -1,90 +1,114 @@
 <?php
+/**
+ * Builds Buffer messages from post data.
+ *
+ * @package LightWeb2\PublishWithBuffer
+ */
+
 declare( strict_types=1 );
 
 namespace LightWeb2\PublishWithBuffer;
 
+/**
+ * Replaces template variables with post content.
+ */
 final class Message_Builder {
 
-    public function build( int $post_id, string $template ): string {
-        $post = get_post( $post_id );
+	/**
+	 * Build the message for a post.
+	 *
+	 * @param int    $post_id  Post ID.
+	 * @param string $template Message template.
+	 * @return string
+	 */
+	public function build( int $post_id, string $template ): string {
+		$post = get_post( $post_id );
 
-        if ( ! $post ) {
-            return '';
-        }
+		if ( ! $post ) {
+			return '';
+		}
 
-        $title = wp_strip_all_tags(
-            html_entity_decode( get_the_title( $post_id ), ENT_QUOTES, 'UTF-8' )
-        );
+		$title = wp_strip_all_tags(
+			html_entity_decode( get_the_title( $post_id ), ENT_QUOTES, 'UTF-8' )
+		);
 
-        if ( has_excerpt( $post_id ) ) {
-            $excerpt = get_the_excerpt( $post_id );
-        } else {
-            $content = html_entity_decode(
-                strip_shortcodes( (string) $post->post_content ),
-                ENT_QUOTES,
-                'UTF-8'
-            );
-            $content = preg_replace(
-                '/<\/(p|div|h[1-6]|li|blockquote|tr)>/i',
-                '$0 ',
-                $content
-            );
-            $excerpt = wp_trim_words( wp_strip_all_tags( $content ), 20 );
-        }
+		if ( has_excerpt( $post_id ) ) {
+			$excerpt = get_the_excerpt( $post_id );
+		} else {
+			$content = html_entity_decode(
+				strip_shortcodes( (string) $post->post_content ),
+				ENT_QUOTES,
+				'UTF-8'
+			);
+			$content = preg_replace(
+				'/<\/(p|div|h[1-6]|li|blockquote|tr)>/i',
+				'$0 ',
+				$content
+			);
+			$excerpt = wp_trim_words( wp_strip_all_tags( $content ), 20 );
+		}
 
-        $excerpt = wp_strip_all_tags(
-            html_entity_decode( $excerpt, ENT_QUOTES, 'UTF-8' )
-        );
-        $author  = wp_strip_all_tags(
-            html_entity_decode(
-                (string) get_the_author_meta( 'display_name', (int) $post->post_author ),
-                ENT_QUOTES,
-                'UTF-8'
-            )
-        );
-        $categories = get_the_category( $post_id );
-        $category   = ! empty( $categories )
-            ? wp_strip_all_tags(
-                html_entity_decode( $categories[0]->name, ENT_QUOTES, 'UTF-8' )
-            )
-            : '';
+		$excerpt    = wp_strip_all_tags(
+			html_entity_decode( $excerpt, ENT_QUOTES, 'UTF-8' )
+		);
+		$author     = wp_strip_all_tags(
+			html_entity_decode(
+				(string) get_the_author_meta( 'display_name', (int) $post->post_author ),
+				ENT_QUOTES,
+				'UTF-8'
+			)
+		);
+		$categories = get_the_category( $post_id );
+		$category   = ! empty( $categories )
+			? wp_strip_all_tags(
+				html_entity_decode( $categories[0]->name, ENT_QUOTES, 'UTF-8' )
+			)
+			: '';
 
-        $hashtags = [];
+		$hashtags = array();
 
-        foreach ( get_the_tags( $post_id ) ?: [] as $tag ) {
-            $clean = preg_replace(
-                '/[^\p{L}\p{N}_]/u',
-                '',
-                html_entity_decode( (string) $tag->name, ENT_QUOTES, 'UTF-8' )
-            );
+		$tags = get_the_tags( $post_id );
 
-            if ( is_string( $clean ) && '' !== $clean ) {
-                $hashtags[] = '#' . $clean;
-            }
-        }
+		foreach ( $tags ? $tags : array() as $tag ) {
+			$clean = preg_replace(
+				'/[^\p{L}\p{N}_]/u',
+				'',
+				html_entity_decode( (string) $tag->name, ENT_QUOTES, 'UTF-8' )
+			);
 
-        $replacements = [
-            '{title}'    => $title,
-            '{url}'      => (string) get_permalink( $post_id ),
-            '{excerpt}'  => $excerpt,
-            '{author}'   => (string) $author,
-            '{category}' => (string) $category,
-            '{tags}'     => implode( ' ', $hashtags ),
-        ];
+			if ( is_string( $clean ) && '' !== $clean ) {
+				$hashtags[] = '#' . $clean;
+			}
+		}
 
-        $message = strtr( $template, $replacements );
-        $message = preg_replace( "/\n{3,}/", "\n\n", $message );
+		$replacements = array(
+			'{title}'    => $title,
+			'{url}'      => (string) get_permalink( $post_id ),
+			'{excerpt}'  => $excerpt,
+			'{author}'   => (string) $author,
+			'{category}' => (string) $category,
+			'{tags}'     => implode( ' ', $hashtags ),
+		);
 
-        return trim( is_string( $message ) ? $message : '' );
-    }
+		$message = strtr( $template, $replacements );
+		$message = preg_replace( "/\n{3,}/", "\n\n", $message );
 
-    public function image_url( int $post_id ): ?string {
-        if ( ! has_post_thumbnail( $post_id ) ) {
-            return null;
-        }
+		return trim( is_string( $message ) ? $message : '' );
+	}
 
-        $url = get_the_post_thumbnail_url( $post_id, 'full' );
+	/**
+	 * Return the featured image URL for a post.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return string|null
+	 */
+	public function image_url( int $post_id ): ?string {
+		if ( ! has_post_thumbnail( $post_id ) ) {
+			return null;
+		}
 
-        return is_string( $url ) && '' !== $url ? $url : null;
-    }
+		$url = get_the_post_thumbnail_url( $post_id, 'full' );
+
+		return is_string( $url ) && '' !== $url ? $url : null;
+	}
 }

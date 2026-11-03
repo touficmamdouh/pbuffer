@@ -10,10 +10,12 @@
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: lightweb2-publish-with-buffer
  * Domain Path: /languages
+ *
+ * @package LightWeb2\PublishWithBuffer
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+	exit;
 }
 
 define( 'LIGHTWEB2_VERSION', '1.0.0' );
@@ -31,12 +33,12 @@ require_once LIGHTWEB2_DIR . 'includes/class-publisher.php';
 require_once LIGHTWEB2_DIR . 'includes/class-admin.php';
 require_once LIGHTWEB2_DIR . 'includes/class-plugin.php';
 
-register_activation_hook( __FILE__, [ '\LightWeb2\PublishWithBuffer\Installer', 'activate' ] );
-register_deactivation_hook( __FILE__, [ '\LightWeb2\PublishWithBuffer\Installer', 'deactivate' ] );
+register_activation_hook( __FILE__, array( '\LightWeb2\PublishWithBuffer\Installer', 'activate' ) );
+register_deactivation_hook( __FILE__, array( '\LightWeb2\PublishWithBuffer\Installer', 'deactivate' ) );
 
 add_action(
-    'plugins_loaded',
-    static function (): void {
-        \LightWeb2\PublishWithBuffer\Plugin::instance()->boot();
-    }
+	'plugins_loaded',
+	static function (): void {
+		\LightWeb2\PublishWithBuffer\Plugin::instance()->boot();
+	}
 );

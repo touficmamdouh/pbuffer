@@ -1,0 +1,341 @@
+# Copyright (C) 2026 LightWeb2
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: LightWeb2 Publish with Buffer 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/light-publish-with-buffer\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-11-03T23:44:29+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: lightweb2-publish-with-buffer\n"
+
+#. Plugin Name of the plugin
+#: lightweb2-publish-with-buffer.php
+msgid "LightWeb2 Publish with Buffer"
+msgstr ""
+
+#. Description of the plugin
+#: lightweb2-publish-with-buffer.php
+msgid "Publish WordPress posts to Buffer channels."
+msgstr ""
+
+#. Author of the plugin
+#: lightweb2-publish-with-buffer.php
+#: includes/class-admin.php:87
+#: includes/class-admin.php:88
+#: includes/class-admin.php:348
+#: includes/class-admin.php:501
+#: includes/class-meta-box.php:60
+msgid "LightWeb2"
+msgstr ""
+
+#: includes/class-admin.php:98
+#: includes/class-admin.php:99
+#: includes/class-admin.php:349
+msgid "Publish with Buffer"
+msgstr ""
+
+#: includes/class-admin.php:107
+#: includes/class-admin.php:108
+#: includes/class-admin.php:502
+msgid "Activity"
+msgstr ""
+
+#: includes/class-admin.php:167
+msgid "Testing connection…"
+msgstr ""
+
+#: includes/class-admin.php:168
+msgid "Loading channels…"
+msgstr ""
+
+#. translators: %s: Buffer account name.
+#: includes/class-admin.php:170
+#, php-format
+msgid "Connected to Buffer as %s."
+msgstr ""
+
+#: includes/class-admin.php:171
+msgid "No channels found in this Buffer account."
+msgstr ""
+
+#: includes/class-admin.php:172
+msgid "Could not reach Buffer. Check the token and try again."
+msgstr ""
+
+#: includes/class-admin.php:173
+msgid "Disconnect Buffer and clear the selected channels?"
+msgstr ""
+
+#: includes/class-admin.php:174
+msgid "Delete all delivery history? This cannot be undone."
+msgstr ""
+
+#: includes/class-admin.php:190
+msgid "You are not allowed to manage Buffer settings."
+msgstr ""
+
+#: includes/class-admin.php:226
+#: includes/class-admin.php:258
+msgid "Add a Buffer token first."
+msgstr ""
+
+#: includes/class-admin.php:350
+msgid "Connect Buffer, choose your channels, and share WordPress posts without the busywork."
+msgstr ""
+
+#: includes/class-admin.php:361
+msgid "Connection"
+msgstr ""
+
+#: includes/class-admin.php:362
+msgid "Create a personal API key in Buffer, then paste it here."
+msgstr ""
+
+#: includes/class-admin.php:363
+msgid "Buffer API Token"
+msgstr ""
+
+#: includes/class-admin.php:376
+msgid "Token is set. Enter a new one to replace it."
+msgstr ""
+
+#: includes/class-admin.php:377
+msgid "Not connected yet."
+msgstr ""
+
+#: includes/class-admin.php:381
+msgid "Test connection"
+msgstr ""
+
+#: includes/class-admin.php:382
+msgid "Load channels"
+msgstr ""
+
+#: includes/class-admin.php:383
+msgid "Disconnect"
+msgstr ""
+
+#: includes/class-admin.php:389
+msgid "Channels"
+msgstr ""
+
+#: includes/class-admin.php:393
+msgid "No channels selected. Save your token, then load channels."
+msgstr ""
+
+#: includes/class-admin.php:412
+msgid "Publishing defaults"
+msgstr ""
+
+#: includes/class-admin.php:413
+msgid "Default mode"
+msgstr ""
+
+#: includes/class-admin.php:415
+#: includes/class-meta-box.php:104
+msgid "Add to Queue"
+msgstr ""
+
+#: includes/class-admin.php:416
+#: includes/class-meta-box.php:105
+msgid "Share Now"
+msgstr ""
+
+#: includes/class-admin.php:419
+msgid "Message template"
+msgstr ""
+
+#: includes/class-admin.php:422
+msgid "Variables:"
+msgstr ""
+
+#: includes/class-admin.php:426
+msgid "Preview"
+msgstr ""
+
+#: includes/class-admin.php:431
+msgid "Filtering"
+msgstr ""
+
+#: includes/class-admin.php:432
+msgid "Category filter"
+msgstr ""
+
+#: includes/class-admin.php:436
+msgid "All categories"
+msgstr ""
+
+#: includes/class-admin.php:448
+msgid "Tools"
+msgstr ""
+
+#: includes/class-admin.php:449
+msgid "Keep delivery history for"
+msgstr ""
+
+#: includes/class-admin.php:451
+msgid "days"
+msgstr ""
+
+#: includes/class-admin.php:454
+msgid "Save Settings"
+msgstr ""
+
+#: includes/class-admin.php:503
+msgid "Every Buffer delivery attempt, with the reason it failed and a safe retry action."
+msgstr ""
+
+#: includes/class-admin.php:505
+msgid "Clear history"
+msgstr ""
+
+#: includes/class-admin.php:511
+#: includes/class-admin.php:545
+msgid "Status"
+msgstr ""
+
+#: includes/class-admin.php:513
+msgid "All statuses"
+msgstr ""
+
+#: includes/class-admin.php:520
+msgid "Channel ID"
+msgstr ""
+
+#: includes/class-admin.php:524
+msgid "From"
+msgstr ""
+
+#: includes/class-admin.php:528
+msgid "To"
+msgstr ""
+
+#: includes/class-admin.php:531
+msgid "Filter"
+msgstr ""
+
+#: includes/class-admin.php:536
+msgid "No deliveries yet. Publish a post with Buffer enabled to see activity here."
+msgstr ""
+
+#: includes/class-admin.php:541
+msgid "Date"
+msgstr ""
+
+#: includes/class-admin.php:542
+msgid "Post"
+msgstr ""
+
+#: includes/class-admin.php:543
+msgid "Channel"
+msgstr ""
+
+#: includes/class-admin.php:544
+msgid "Mode"
+msgstr ""
+
+#: includes/class-admin.php:546
+msgid "Attempts"
+msgstr ""
+
+#: includes/class-admin.php:547
+msgid "Details"
+msgstr ""
+
+#: includes/class-admin.php:548
+msgid "Action"
+msgstr ""
+
+#: includes/class-admin.php:580
+msgid "Retry"
+msgstr ""
+
+#: includes/class-admin.php:627
+msgid "This delivery cannot be retried."
+msgstr ""
+
+#: includes/class-buffer-client.php:111
+#: includes/class-buffer-client.php:231
+msgid "Buffer returned an unexpected response."
+msgstr ""
+
+#: includes/class-buffer-client.php:163
+msgid "The token is invalid or expired. Reconnect Buffer."
+msgstr ""
+
+#: includes/class-buffer-client.php:171
+msgid "Buffer rejected this account. Reconnect Buffer."
+msgstr ""
+
+#: includes/class-buffer-client.php:181
+msgid "Buffer rate limit reached. The delivery will be retried."
+msgstr ""
+
+#: includes/class-buffer-client.php:190
+msgid "Buffer is temporarily unavailable."
+msgstr ""
+
+#. translators: %d: HTTP status code.
+#: includes/class-buffer-client.php:200
+#, php-format
+msgid "Buffer returned HTTP %d."
+msgstr ""
+
+#: includes/class-buffer-client.php:210
+msgid "Buffer returned an invalid response."
+msgstr ""
+
+#: includes/class-buffer-client.php:222
+msgid "Buffer returned an error."
+msgstr ""
+
+#: includes/class-deliveries.php:327
+msgid "The delivery was interrupted and will be retried."
+msgstr ""
+
+#: includes/class-meta-box.php:87
+msgid "Buffer is not connected."
+msgstr ""
+
+#: includes/class-meta-box.php:89
+msgid "Open settings"
+msgstr ""
+
+#: includes/class-meta-box.php:97
+msgid "Send to Buffer on publish"
+msgstr ""
+
+#: includes/class-meta-box.php:102
+msgid "Publishing mode"
+msgstr ""
+
+#: includes/class-meta-box.php:110
+msgid "Delivery status"
+msgstr ""
+
+#: includes/class-publisher.php:141
+#: includes/class-publisher.php:197
+msgid "The message template produced an empty post."
+msgstr ""
+
+#: includes/class-publisher.php:186
+msgid "Reconnect Buffer before publishing."
+msgstr ""
+
+#: includes/class-publisher.php:230
+msgid "Buffer did not return a post ID."
+msgstr ""
+
+#: includes/class-publisher.php:287
+msgid "Could not schedule the retry."
+msgstr ""
+
+#: includes/class-settings.php:114
+msgid "The Buffer token changed. Load and select your channels again."
+msgstr ""
