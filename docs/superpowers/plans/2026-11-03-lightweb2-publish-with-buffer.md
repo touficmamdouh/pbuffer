@@ -957,7 +957,14 @@ final class Admin {
     }
 
     public function enqueue_assets( string $hook ): void {
-        if ( ! in_array( $hook, [ 'toplevel_page_lightweb2', 'lightweb2_page_lightweb2-activity' ], true ) ) {
+        $is_plugin_screen = in_array(
+            $hook,
+            [ 'toplevel_page_lightweb2', 'lightweb2_page_lightweb2-activity' ],
+            true
+        );
+        $is_post_screen   = in_array( $hook, [ 'post.php', 'post-new.php' ], true );
+
+        if ( ! $is_plugin_screen && ! $is_post_screen ) {
             return;
         }
 
@@ -967,6 +974,10 @@ final class Admin {
             [],
             LIGHTWEB2_VERSION
         );
+
+        if ( ! $is_plugin_screen ) {
+            return;
+        }
 
         wp_enqueue_script(
             'lightweb2-admin',
@@ -3191,6 +3202,9 @@ git commit -m "feat: add delivery repository with idempotency"
 - Create: `tests/test-meta-box.php`
 - Modify: `includes/class-plugin.php`
 - Modify: `lightweb2-publish-with-buffer.php`
+- Modify: `includes/class-admin.php`
+- Modify: `assets/admin.css`
+- Modify: `tests/test-admin.php`
 
 **Interfaces:**
 - Consumes: `Settings::get()`, `Deliveries::get_for_post()`
@@ -3221,6 +3235,15 @@ final class Test_Meta_Box extends WP_UnitTestCase {
         Installer::create_table();
         update_option( Settings::OPTION, Settings::defaults() );
         $this->meta_box = new Meta_Box( new Settings(), new Deliveries() );
+    }
+
+    public function tear_down(): void {
+        unset(
+            $_POST['lightweb2_meta_nonce'],
+            $_POST['lightweb2_enabled'],
+            $_POST['lightweb2_mode']
+        );
+        parent::tear_down();
     }
 
     public function test_admin_can_enable_sending_and_select_mode(): void {
@@ -3264,7 +3287,51 @@ final class Test_Meta_Box extends WP_UnitTestCase {
 
         $this->assertSame( '', get_post_meta( $post_id, '_lightweb2_enabled', true ) );
     }
+
+    public function test_page_cannot_change_post_meta(): void {
+        $user_id = self::factory()->user->create( [ 'role' => 'administrator' ] );
+        wp_set_current_user( $user_id );
+        $page_id = self::factory()->post->create(
+            [
+                'post_type'   => 'page',
+                'post_author' => $user_id,
+            ]
+        );
+
+        $_POST['lightweb2_meta_nonce'] = wp_create_nonce( 'lightweb2_meta' );
+        $_POST['lightweb2_enabled']    = 'yes';
+
+        $this->meta_box->save( $page_id );
+
+        $this->assertSame( '', get_post_meta( $page_id, '_lightweb2_enabled', true ) );
+    }
+
+    public function test_missing_nonce_does_not_change_meta(): void {
+        $user_id = self::factory()->user->create( [ 'role' => 'administrator' ] );
+        wp_set_current_user( $user_id );
+        $post_id = self::factory()->post->create( [ 'post_author' => $user_id ] );
+
+        $_POST['lightweb2_enabled'] = 'yes';
+
+        $this->meta_box->save( $post_id );
+
+        $this->assertSame( '', get_post_meta( $post_id, '_lightweb2_enabled', true ) );
+    }
 }
+```
+
+Add this test to `tests/test-admin.php` to cover the post-editor stylesheet:
+
+```php
+    public function test_post_editor_enqueues_admin_style_only(): void {
+        wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+
+        $admin = new Admin( new Settings(), new Buffer_Client() );
+        $admin->enqueue_assets( 'post.php' );
+
+        $this->assertTrue( wp_style_is( 'lightweb2-admin', 'enqueued' ) );
+        $this->assertFalse( wp_script_is( 'lightweb2-admin', 'enqueued' ) );
+    }
 ```
 
 - [ ] **Step 2: Run the tests to verify they fail**
@@ -3379,6 +3446,10 @@ final class Meta_Box {
         }
 
         if ( ! current_user_can( 'edit_post', $post_id ) ) {
+            return;
+        }
+
+        if ( 'post' !== get_post_type( $post_id ) ) {
             return;
         }
 
