@@ -2616,11 +2616,11 @@ final class Test_Message_Builder extends WP_UnitTestCase {
     {
         $user_id = self::factory()->user->create(
             [
-                'display_name' => 'R&amp;D',
+                'display_name' => 'Ada &amp; Co',
                 'role'         => 'author',
             ]
         );
-        $category_id = self::factory()->category->create( [ 'name' => 'R&amp;D' ] );
+        $category_id = self::factory()->category->create( [ 'name' => 'Research &amp; Development' ] );
         $post_id     = self::factory()->post->create(
             [
                 'post_author'   => $user_id,
@@ -2640,9 +2640,27 @@ final class Test_Message_Builder extends WP_UnitTestCase {
         $this->assertStringNotContainsString( '<p>', $message );
         $this->assertStringContainsString( 'Launch now', $message );
         $this->assertStringContainsString( 'Hello & welcome', $message );
-        $this->assertStringContainsString( 'R&D', $message );
+        $this->assertStringContainsString( 'Ada & Co', $message );
+        $this->assertStringContainsString( 'Research & Development', $message );
         $this->assertStringContainsString( '#RD', $message );
         $this->assertStringNotContainsString( '#RampD', $message );
+    }
+
+    public function test_excerpt_fallback_strips_scripts_and_keeps_block_spacing(): void
+    {
+        $post_id = self::factory()->post->create(
+            [
+                'post_title'   => 'Blocks',
+                'post_content' => '<p>First</p><script>alert(1)</script><p>Second</p>',
+                'post_excerpt' => '',
+            ]
+        );
+
+        $message = $this->builder->build( $post_id, '{excerpt}' );
+
+        $this->assertStringContainsString( 'First Second', $message );
+        $this->assertStringNotContainsString( 'alert(1)', $message );
+        $this->assertStringNotContainsString( '<script>', $message );
     }
 
     public function test_positive_thumbnail_returns_image_url(): void
@@ -2717,7 +2735,11 @@ final class Message_Builder {
                 ENT_QUOTES,
                 'UTF-8'
             );
-            $content = preg_replace( '/<[^>]+>/', ' ', $content );
+            $content = preg_replace(
+                '/<\/(p|div|h[1-6]|li|blockquote|tr)>/i',
+                '$0 ',
+                $content
+            );
             $excerpt = wp_trim_words( wp_strip_all_tags( $content ), 20 );
         }
 
