@@ -1839,8 +1839,66 @@ final class Test_Admin_Ajax extends WP_Ajax_UnitTestCase {
         $this->prepare_nonce();
         $_POST['token'] = 'test-token';
 
-        $this->expectException( 'WPDieException' );
-        $this->_handleAjax( 'lightweb2_test_connection' );
+        $requested = false;
+        add_filter(
+            'pre_http_request',
+            static function () use ( &$requested ): array {
+                $requested = true;
+
+                return [
+                    'headers'  => [],
+                    'body'     => wp_json_encode( [ 'data' => [ 'account' => [ 'name' => 'Should not happen' ] ] ] ),
+                    'response' => [ 'code' => 200, 'message' => 'OK' ],
+                    'cookies'  => [],
+                    'filename' => null,
+                ];
+            }
+        );
+
+        try {
+            $this->_handleAjax( 'lightweb2_test_connection' );
+        } catch ( WPAjaxDieContinueException $e ) {
+            // Expected after wp_send_json_error().
+        }
+
+        $response = json_decode( $this->_last_response, true );
+
+        $this->assertFalse( $requested );
+        $this->assertFalse( $response['success'] );
+        $this->assertStringContainsString( 'not allowed', $response['data']['message'] );
+    }
+
+    public function test_test_connection_rejects_missing_nonce(): void {
+        wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+        unset( $_POST['nonce'], $_REQUEST['nonce'] );
+        $_POST['token'] = 'test-token';
+
+        $requested = false;
+        add_filter(
+            'pre_http_request',
+            static function () use ( &$requested ): array {
+                $requested = true;
+
+                return [
+                    'headers'  => [],
+                    'body'     => wp_json_encode( [ 'data' => [ 'account' => [ 'name' => 'Should not happen' ] ] ] ),
+                    'response' => [ 'code' => 200, 'message' => 'OK' ],
+                    'cookies'  => [],
+                    'filename' => null,
+                ];
+            }
+        );
+
+        $die_message = '';
+
+        try {
+            $this->_handleAjax( 'lightweb2_test_connection' );
+        } catch ( WPAjaxDieStopException $e ) {
+            $die_message = $e->getMessage();
+        }
+
+        $this->assertFalse( $requested );
+        $this->assertSame( '-1', $die_message );
     }
 
     public function test_test_connection_returns_account_name(): void {
