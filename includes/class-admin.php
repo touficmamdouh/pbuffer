@@ -6,14 +6,19 @@ namespace LightWeb2\PublishWithBuffer;
 final class Admin {
 
     private Settings $settings;
+    private Buffer_Client $client;
 
-    public function __construct( Settings $settings ) {
+    public function __construct( Settings $settings, Buffer_Client $client ) {
         $this->settings = $settings;
+        $this->client   = $client;
     }
 
     public function register(): void {
         add_action( 'admin_menu', [ $this, 'register_menu' ] );
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
+        add_action( 'wp_ajax_lightweb2_test_connection', [ $this, 'ajax_test_connection' ] );
+        add_action( 'wp_ajax_lightweb2_fetch_channels', [ $this, 'ajax_fetch_channels' ] );
+        add_action( 'wp_ajax_lightweb2_disconnect', [ $this, 'ajax_disconnect' ] );
     }
 
     public function register_menu(): void {
@@ -56,6 +61,156 @@ final class Admin {
             LIGHTWEB2_VERSION,
             true
         );
+
+        $settings = $this->settings->get();
+
+        wp_localize_script(
+            'lightweb2-admin',
+            'lightweb2Admin',
+            [
+                'ajaxUrl'          => admin_url( 'admin-ajax.php' ),
+                'nonce'            => wp_create_nonce( 'lightweb2_admin' ),
+                'selectedChannels' => array_values(
+                    array_map(
+                        static fn( array $channel ): string => (string) $channel['id'],
+                        $settings['channels']
+                    )
+                ),
+                'strings'          => [
+                    'testing'            => __( 'Testing connection…', 'lightweb2-publish-with-buffer' ),
+                    'loading'            => __( 'Loading channels…', 'lightweb2-publish-with-buffer' ),
+                    'connected'          => __( 'Connected to Buffer as %s.', 'lightweb2-publish-with-buffer' ),
+                    'noChannels'         => __( 'No channels found in this Buffer account.', 'lightweb2-publish-with-buffer' ),
+                    'error'              => __( 'Could not reach Buffer. Check the token and try again.', 'lightweb2-publish-with-buffer' ),
+                    'confirmDisconnect'  => __( 'Disconnect Buffer and clear the selected channels?', 'lightweb2-publish-with-buffer' ),
+                    'confirmClearLogs'   => __( 'Delete all delivery history? This cannot be undone.', 'lightweb2-publish-with-buffer' ),
+                ],
+            ]
+        );
+    }
+
+    private function verify_ajax(): void {
+        check_ajax_referer( 'lightweb2_admin', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error(
+                [ 'message' => __( 'You are not allowed to manage Buffer settings.', 'lightweb2-publish-with-buffer' ) ],
+                403
+            );
+        }
+    }
+
+    private function request_token(): string {
+        $token = isset( $_POST['token'] )
+            ? sanitize_text_field( wp_unslash( (string) $_POST['token'] ) )
+            : '';
+
+        if ( '' === $token ) {
+            $token = (string) $this->settings->get()['token'];
+        }
+
+        return $token;
+    }
+
+    public function ajax_test_connection(): void {
+        $this->verify_ajax();
+        $token = $this->request_token();
+
+        if ( '' === $token ) {
+            wp_send_json_error(
+                [ 'message' => __( 'Add a Buffer token first.', 'lightweb2-publish-with-buffer' ) ],
+                400
+            );
+        }
+
+        $result = $this->client->test_connection( $token );
+
+        if ( ! $result['success'] ) {
+            wp_send_json_error( [ 'message' => $result['message'] ], 400 );
+        }
+
+        $account = $result['data']['account'] ?? [];
+
+        wp_send_json_success(
+            [
+                'account'       => sanitize_text_field( (string) ( $account['name'] ?? '' ) ),
+                'organizations' => count( $account['organizations'] ?? [] ),
+            ]
+        );
+    }
+
+    public function ajax_fetch_channels(): void {
+        $this->verify_ajax();
+        $token = $this->request_token();
+
+        if ( '' === $token ) {
+            wp_send_json_error(
+                [ 'message' => __( 'Add a Buffer token first.', 'lightweb2-publish-with-buffer' ) ],
+                400
+            );
+        }
+
+        $account = $this->client->test_connection( $token );
+
+        if ( ! $account['success'] ) {
+            wp_send_json_error( [ 'message' => $account['message'] ], 400 );
+        }
+
+        $catalog = [];
+
+        foreach ( $account['data']['account']['organizations'] ?? [] as $organization ) {
+            $organization_id = sanitize_text_field( (string) ( $organization['id'] ?? '' ) );
+
+            if ( '' === $organization_id ) {
+                continue;
+            }
+
+            $channels = $this->client->get_channels( $token, $organization_id );
+
+            if ( ! $channels['success'] ) {
+                wp_send_json_error( [ 'message' => $channels['message'] ], 400 );
+            }
+
+            $normalized = [];
+
+            foreach ( $channels['data']['channels'] ?? [] as $channel ) {
+                $normalized[] = [
+                    'id'      => sanitize_text_field( (string) ( $channel['id'] ?? '' ) ),
+                    'name'    => sanitize_text_field( (string) ( $channel['name'] ?? '' ) ),
+                    'service' => sanitize_key( (string) ( $channel['service'] ?? '' ) ),
+                ];
+            }
+
+            $catalog[] = [
+                'id'       => $organization_id,
+                'name'     => sanitize_text_field( (string) ( $organization['name'] ?? '' ) ),
+                'channels' => $normalized,
+            ];
+        }
+
+        set_transient( Settings::catalog_key( $token ), $catalog, 12 * HOUR_IN_SECONDS );
+
+        wp_send_json_success( [ 'organizations' => $catalog ] );
+    }
+
+    public function ajax_disconnect(): void {
+        $this->verify_ajax();
+
+        $settings = $this->settings->get();
+        delete_transient( Settings::catalog_key( (string) $settings['token'] ) );
+
+        // Clear first so sanitize() does not preserve the existing token.
+        delete_option( Settings::OPTION );
+
+        update_option(
+            Settings::OPTION,
+            [
+                'token'    => '',
+                'channels' => [],
+            ] + $settings
+        );
+
+        wp_send_json_success();
     }
 
     public function render_settings_page(): void {
@@ -99,6 +254,12 @@ final class Admin {
                             ? esc_html__( 'Token is set. Enter a new one to replace it.', 'lightweb2-publish-with-buffer' )
                             : esc_html__( 'Not connected yet.', 'lightweb2-publish-with-buffer' ); ?>
                     </p>
+                    <p class="lightweb2-actions">
+                        <button type="button" class="button" id="lightweb2-test"><?php esc_html_e( 'Test connection', 'lightweb2-publish-with-buffer' ); ?></button>
+                        <button type="button" class="button" id="lightweb2-load-channels"><?php esc_html_e( 'Load channels', 'lightweb2-publish-with-buffer' ); ?></button>
+                        <button type="button" class="button-link-delete" id="lightweb2-disconnect"><?php esc_html_e( 'Disconnect', 'lightweb2-publish-with-buffer' ); ?></button>
+                    </p>
+                    <p class="lightweb2-ajax-status" id="lightweb2-ajax-status" role="status" aria-live="polite"></p>
                 </section>
 
                 <section class="lightweb2-card">

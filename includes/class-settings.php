@@ -72,7 +72,7 @@ final class Settings {
                 );
             }
         } elseif ( ! empty( $input['channels_submitted'] ) ) {
-            $channels = $this->sanitize_channels( $input['channels'] ?? [] );
+            $channels = $this->sanitize_channels( $input['channels'] ?? [], (string) $current['token'] );
         } else {
             $channels = is_array( $current['channels'] ) ? $current['channels'] : [];
         }
@@ -111,15 +111,43 @@ final class Settings {
         ];
     }
 
-    public function sanitize_channels( $input ): array {
+    public function sanitize_channels( $input, string $token = '' ): array {
         if ( ! is_array( $input ) ) {
             return [];
+        }
+
+        $catalog = [];
+        $cache   = '' !== $token ? get_transient( self::catalog_key( $token ) ) : false;
+
+        $current_channels = $this->get()['channels'];
+
+        if ( is_array( $current_channels ) ) {
+            foreach ( $current_channels as $existing ) {
+                if ( isset( $existing['id'] ) ) {
+                    $catalog[ (string) $existing['id'] ] = $existing;
+                }
+            }
+        }
+
+        if ( is_array( $cache ) ) {
+            foreach ( $cache as $organization ) {
+                foreach ( $organization['channels'] ?? [] as $channel ) {
+                    if ( isset( $channel['id'] ) ) {
+                        $catalog[ (string) $channel['id'] ] = $channel;
+                    }
+                }
+            }
         }
 
         $channels = [];
         $seen     = [];
 
         foreach ( $input as $channel ) {
+            if ( is_string( $channel ) ) {
+                $id = substr( sanitize_text_field( $channel ), 0, 64 );
+                $channel = $catalog[ $id ] ?? [ 'id' => $id, 'name' => '', 'service' => '' ];
+            }
+
             if ( ! is_array( $channel ) ) {
                 continue;
             }

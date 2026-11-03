@@ -117,6 +117,39 @@
   text-transform: capitalize;
 }
 
+.lightweb2-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 0;
+}
+
+.lightweb2-ajax-status {
+  min-height: 24px;
+  margin: 10px 0 0;
+  color: var(--lightweb2-muted);
+}
+
+.lightweb2-ajax-status.is-error {
+  color: #b91c1c;
+}
+
+.lightweb2-channel-group {
+  grid-column: 1 / -1;
+  margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+}
+
+.lightweb2-channel-group legend {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.lightweb2-channel-group .lightweb2-channel {
+  margin-bottom: 6px;
+}
+
 .lightweb2-preview {
   min-height: 96px;
   margin: 6px 0 0;

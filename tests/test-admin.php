@@ -2,6 +2,7 @@
 declare( strict_types=1 );
 
 use LightWeb2\PublishWithBuffer\Admin;
+use LightWeb2\PublishWithBuffer\Buffer_Client;
 use LightWeb2\PublishWithBuffer\Settings;
 
 final class Test_Admin extends WP_UnitTestCase {
@@ -16,7 +17,7 @@ final class Test_Admin extends WP_UnitTestCase {
             ] + Settings::defaults()
         );
 
-        $admin = new Admin( new Settings() );
+        $admin = new Admin( new Settings(), new Buffer_Client() );
 
         ob_start();
         $admin->render_settings_page();
@@ -32,12 +33,33 @@ final class Test_Admin extends WP_UnitTestCase {
         wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
         add_settings_error( 'general', 'lightweb2_test_notice', 'General notice visible' );
 
-        $admin = new Admin( new Settings() );
+        $admin = new Admin( new Settings(), new Buffer_Client() );
 
         ob_start();
         $admin->render_settings_page();
         $html = (string) ob_get_clean();
 
         $this->assertStringContainsString( 'General notice visible', $html );
+    }
+
+    public function test_enqueue_assets_localizes_only_public_settings(): void {
+        wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+        update_option(
+            Settings::OPTION,
+            [
+                'token'    => 'secret-token-value',
+                'channels' => [
+                    [ 'id' => 'c1', 'name' => 'One', 'service' => 'linkedin' ],
+                ],
+            ] + Settings::defaults()
+        );
+
+        $admin = new Admin( new Settings(), new Buffer_Client() );
+        $admin->enqueue_assets( 'toplevel_page_lightweb2' );
+        $data = wp_scripts()->get_data( 'lightweb2-admin', 'data' );
+
+        $this->assertIsString( $data );
+        $this->assertStringNotContainsString( 'secret-token-value', $data );
+        $this->assertStringContainsString( '"selectedChannels":["c1"]', $data );
     }
 }

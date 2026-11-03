@@ -8,6 +8,7 @@ final class Plugin {
     private static ?Plugin $instance = null;
 
     private Settings $settings;
+    private Buffer_Client $client;
     private Admin $admin;
 
     public static function instance(): Plugin {
@@ -20,7 +21,8 @@ final class Plugin {
 
     public function boot(): void {
         $this->settings = new Settings();
-        $this->admin    = new Admin( $this->settings );
+        $this->client   = new Buffer_Client();
+        $this->admin    = new Admin( $this->settings, $this->client );
 
         $this->settings->register();
         $this->admin->register();

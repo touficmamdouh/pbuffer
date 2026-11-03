@@ -113,4 +113,36 @@ final class Test_Settings extends WP_UnitTestCase {
         $this->assertSame( 'One', $result['channels'][0]['name'] );
         $this->assertSame( 'linkedin', $result['channels'][0]['service'] );
     }
+
+    public function test_channel_ids_are_resolved_from_the_catalog_transient(): void {
+        set_transient(
+            Settings::catalog_key( 'old-token' ),
+            [
+                [
+                    'id'       => 'org-1',
+                    'name'     => 'Acme',
+                    'channels' => [
+                        [ 'id' => 'c1', 'name' => 'Company LinkedIn', 'service' => 'linkedin' ],
+                        [ 'id' => 'c2', 'name' => 'Company Instagram', 'service' => 'instagram' ],
+                    ],
+                ],
+            ],
+            12 * HOUR_IN_SECONDS
+        );
+
+        $result = $this->settings->sanitize(
+            [
+                'token'              => '',
+                'channels_submitted' => 1,
+                'channels'           => [ 'c2', 'missing' ],
+            ]
+        );
+
+        $this->assertCount( 2, $result['channels'] );
+        $this->assertSame( 'c2', $result['channels'][0]['id'] );
+        $this->assertSame( 'Company Instagram', $result['channels'][0]['name'] );
+        $this->assertSame( 'instagram', $result['channels'][0]['service'] );
+        $this->assertSame( 'missing', $result['channels'][1]['id'] );
+        $this->assertSame( '', $result['channels'][1]['name'] );
+    }
 }
