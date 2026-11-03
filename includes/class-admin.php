@@ -207,7 +207,8 @@ final class Admin {
             [
                 'token'    => '',
                 'channels' => [],
-            ] + $settings
+            ] + $settings,
+            false
         );
 
         wp_send_json_success();

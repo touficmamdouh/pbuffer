@@ -136,7 +136,9 @@ final class Test_Admin_Ajax extends WP_Ajax_UnitTestCase {
         $this->assertSame( $response['data']['organizations'], get_transient( Settings::catalog_key( 'test-token' ) ) );
     }
 
-    public function test_disconnect_clears_token_channels_and_catalog(): void {
+    public function test_disconnect_clears_state_and_keeps_option_non_autoloaded(): void {
+        global $wpdb;
+
         wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
         $this->prepare_nonce();
         update_option(
@@ -165,5 +167,14 @@ final class Test_Admin_Ajax extends WP_Ajax_UnitTestCase {
         $this->assertSame( 'shareNow', $settings['default_mode'] );
         $this->assertSame( 'Keep this template', $settings['template'] );
         $this->assertFalse( get_transient( Settings::catalog_key( 'saved-token' ) ) );
+        $this->assertSame(
+            'no',
+            $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT autoload FROM {$wpdb->options} WHERE option_name = %s",
+                    Settings::OPTION
+                )
+            )
+        );
     }
 }
