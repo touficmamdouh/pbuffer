@@ -2144,12 +2144,16 @@ public function ajax_disconnect(): void {
     $settings = $this->settings->get();
     delete_transient( Settings::catalog_key( (string) $settings['token'] ) );
 
+    // Clear first so sanitize() does not preserve the existing token.
+    delete_option( Settings::OPTION );
+
     update_option(
         Settings::OPTION,
         [
             'token'    => '',
             'channels' => [],
-        ] + $settings
+        ] + $settings,
+        false
     );
 
     wp_send_json_success();
