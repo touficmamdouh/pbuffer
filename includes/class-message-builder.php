@@ -12,24 +12,47 @@ final class Message_Builder {
             return '';
         }
 
-        $title = html_entity_decode( get_the_title( $post_id ), ENT_QUOTES, 'UTF-8' );
+        $title = wp_strip_all_tags(
+            html_entity_decode( get_the_title( $post_id ), ENT_QUOTES, 'UTF-8' )
+        );
 
         if ( has_excerpt( $post_id ) ) {
             $excerpt = get_the_excerpt( $post_id );
         } else {
-            $content = strip_shortcodes( (string) $post->post_content );
+            $content = html_entity_decode(
+                strip_shortcodes( (string) $post->post_content ),
+                ENT_QUOTES,
+                'UTF-8'
+            );
+            $content = preg_replace( '/<[^>]+>/', ' ', $content );
             $excerpt = wp_trim_words( wp_strip_all_tags( $content ), 20 );
         }
 
-        $excerpt    = html_entity_decode( $excerpt, ENT_QUOTES, 'UTF-8' );
-        $author     = get_the_author_meta( 'display_name', (int) $post->post_author );
+        $excerpt = wp_strip_all_tags(
+            html_entity_decode( $excerpt, ENT_QUOTES, 'UTF-8' )
+        );
+        $author  = wp_strip_all_tags(
+            html_entity_decode(
+                (string) get_the_author_meta( 'display_name', (int) $post->post_author ),
+                ENT_QUOTES,
+                'UTF-8'
+            )
+        );
         $categories = get_the_category( $post_id );
-        $category   = ! empty( $categories ) ? $categories[0]->name : '';
+        $category   = ! empty( $categories )
+            ? wp_strip_all_tags(
+                html_entity_decode( $categories[0]->name, ENT_QUOTES, 'UTF-8' )
+            )
+            : '';
 
         $hashtags = [];
 
         foreach ( get_the_tags( $post_id ) ?: [] as $tag ) {
-            $clean = preg_replace( '/[^\p{L}\p{N}_]/u', '', (string) $tag->name );
+            $clean = preg_replace(
+                '/[^\p{L}\p{N}_]/u',
+                '',
+                html_entity_decode( (string) $tag->name, ENT_QUOTES, 'UTF-8' )
+            );
 
             if ( is_string( $clean ) && '' !== $clean ) {
                 $hashtags[] = '#' . $clean;
