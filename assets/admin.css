@@ -161,6 +161,30 @@
   border-radius: 6px;
 }
 
+.lightweb2-delivery-list {
+  margin: 0;
+}
+
+.lightweb2-delivery {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--lightweb2-border);
+}
+
+.lightweb2-delivery.is-sent strong {
+  color: #15803d;
+}
+
+.lightweb2-delivery.is-failed strong {
+  color: #b91c1c;
+}
+
+.lightweb2-delivery.is-canceled strong {
+  color: var(--lightweb2-muted);
+}
+
 @media (max-width: 782px) {
   .lightweb2-header {
     flex-direction: column;

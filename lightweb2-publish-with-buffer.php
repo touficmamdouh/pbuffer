@@ -24,6 +24,7 @@ define( 'LIGHTWEB2_URL', plugin_dir_url( __FILE__ ) );
 require_once LIGHTWEB2_DIR . 'includes/class-settings.php';
 require_once LIGHTWEB2_DIR . 'includes/class-installer.php';
 require_once LIGHTWEB2_DIR . 'includes/class-deliveries.php';
+require_once LIGHTWEB2_DIR . 'includes/class-meta-box.php';
 require_once LIGHTWEB2_DIR . 'includes/class-buffer-client.php';
 require_once LIGHTWEB2_DIR . 'includes/class-message-builder.php';
 require_once LIGHTWEB2_DIR . 'includes/class-admin.php';
