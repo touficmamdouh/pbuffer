@@ -108,6 +108,30 @@ final class Test_Publisher extends WP_UnitTestCase {
         );
     }
 
+    private function mock_unauthorized(): void {
+        add_filter(
+            'pre_http_request',
+            static function (): array {
+                return [
+                    'headers'  => [],
+                    'body'     => wp_json_encode(
+                        [
+                            'errors' => [
+                                [
+                                    'message'    => 'Unauthorized',
+                                    'extensions' => [ 'code' => 'UNAUTHORIZED' ],
+                                ],
+                            ],
+                        ]
+                    ),
+                    'response' => [ 'code' => 401, 'message' => 'Unauthorized' ],
+                    'cookies'  => [],
+                    'filename' => null,
+                ];
+            }
+        );
+    }
+
     public function test_publish_creates_delivery_and_schedules_worker(): void {
         $post_id = $this->published_post();
         $this->publisher->maybe_publish( $post_id, get_post( $post_id ), true, $this->draft_before() );
@@ -218,5 +242,122 @@ final class Test_Publisher extends WP_UnitTestCase {
 
         $row = $this->deliveries->get_by_post_channel( $post_id, 'c1' );
         $this->assertSame( 'canceled', $row['status'] );
+    }
+
+    public function test_unauthorized_failure_does_not_schedule_retry(): void {
+        $post_id = $this->published_post();
+        $this->publisher->maybe_publish( $post_id, get_post( $post_id ), true, $this->draft_before() );
+        $this->mock_unauthorized();
+
+        $this->publisher->deliver( $post_id, 'c1', 1 );
+        $row = $this->deliveries->get_by_post_channel( $post_id, 'c1' );
+
+        $this->assertSame( 'failed', $row['status'] );
+        $this->assertSame( 'unauthorized', $row['error_code'] );
+        $this->assertFalse(
+            wp_next_scheduled( 'lightweb2_deliver_channel', [ $post_id, 'c1', 2 ] )
+        );
+    }
+
+    public function test_retryable_failure_stops_at_four_attempts(): void {
+        $post_id = $this->published_post();
+        $this->publisher->maybe_publish( $post_id, get_post( $post_id ), true, $this->draft_before() );
+        $this->mock_server_error();
+
+        for ( $attempt = 1; $attempt <= 4; $attempt++ ) {
+            $this->publisher->deliver( $post_id, 'c1', $attempt );
+        }
+
+        $row = $this->deliveries->get_by_post_channel( $post_id, 'c1' );
+        $this->assertSame( 'failed', $row['status'] );
+        $this->assertSame( 4, (int) $row['attempts'] );
+        $this->assertFalse(
+            wp_next_scheduled( 'lightweb2_deliver_channel', [ $post_id, 'c1', 5 ] )
+        );
+    }
+
+    public function test_stale_event_does_not_claim_or_call_buffer(): void {
+        $post_id = $this->published_post();
+        $this->publisher->maybe_publish( $post_id, get_post( $post_id ), true, $this->draft_before() );
+        $before  = $this->deliveries->get_by_post_channel( $post_id, 'c1' );
+        $requests = 0;
+
+        add_filter(
+            'pre_http_request',
+            static function () use ( &$requests ): array {
+                ++$requests;
+
+                return [
+                    'headers'  => [],
+                    'body'     => wp_json_encode(
+                        [
+                            'data' => [
+                                'createPost' => [
+                                    'post' => [ 'id' => 'buffer-1', 'text' => 'Hello' ],
+                                ],
+                            ],
+                        ]
+                    ),
+                    'response' => [ 'code' => 200, 'message' => 'OK' ],
+                    'cookies'  => [],
+                    'filename' => null,
+                ];
+            }
+        );
+
+        $this->publisher->deliver( $post_id, 'c1', 2 );
+        $after = $this->deliveries->get_by_post_channel( $post_id, 'c1' );
+
+        $this->assertSame( 0, $requests );
+        $this->assertSame( 'pending', $after['status'] );
+        $this->assertSame( 0, (int) $after['attempts'] );
+        $this->assertSame( $before['updated_at'], $after['updated_at'] );
+    }
+
+    public function test_manual_retry_resets_attempts_and_schedules_first_attempt(): void {
+        $post_id = $this->published_post();
+        $this->publisher->maybe_publish( $post_id, get_post( $post_id ), true, $this->draft_before() );
+        $this->mock_server_error();
+
+        $this->publisher->deliver( $post_id, 'c1', 1 );
+        $this->publisher->deliver( $post_id, 'c1', 2 );
+
+        $row = $this->deliveries->get_by_post_channel( $post_id, 'c1' );
+        $this->assertSame( 2, (int) $row['attempts'] );
+
+        wp_clear_scheduled_hook( 'lightweb2_deliver_channel' );
+
+        $this->assertTrue( $this->publisher->retry( (int) $row['id'] ) );
+        $retried = $this->deliveries->get_by_post_channel( $post_id, 'c1' );
+
+        $this->assertSame( 'pending', $retried['status'] );
+        $this->assertSame( 0, (int) $retried['attempts'] );
+        $this->assertNull( $retried['error_code'] );
+        $this->assertNotFalse(
+            wp_next_scheduled( 'lightweb2_deliver_channel', [ $post_id, 'c1', 1 ] )
+        );
+    }
+
+    public function test_recover_stale_marks_failed_and_schedules_next_attempt(): void {
+        $post_id = $this->published_post();
+        $this->publisher->maybe_publish( $post_id, get_post( $post_id ), true, $this->draft_before() );
+        $row     = $this->deliveries->get_by_post_channel( $post_id, 'c1' );
+        $this->assertTrue( $this->deliveries->claim( (int) $row['id'], 1 ) );
+
+        global $wpdb;
+        $wpdb->update(
+            $wpdb->prefix . 'lightweb2_deliveries',
+            [ 'updated_at' => gmdate( 'Y-m-d H:i:s', time() - 30 * MINUTE_IN_SECONDS ) ],
+            [ 'id' => (int) $row['id'] ]
+        );
+
+        $this->publisher->recover_stale();
+        $recovered = $this->deliveries->get_by_post_channel( $post_id, 'c1' );
+
+        $this->assertSame( 'failed', $recovered['status'] );
+        $this->assertSame( 'stale_claim', $recovered['error_code'] );
+        $this->assertNotFalse(
+            wp_next_scheduled( 'lightweb2_deliver_channel', [ $post_id, 'c1', 2 ] )
+        );
     }
 }

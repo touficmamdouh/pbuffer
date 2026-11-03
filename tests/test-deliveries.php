@@ -49,6 +49,70 @@ final class Test_Deliveries extends WP_UnitTestCase {
         $this->assertSame( 'buffer-1', $sent['buffer_post_id'] );
     }
 
+    public function test_claim_allows_only_one_worker(): void {
+        $row = $this->deliveries->create_or_get( 14, $this->channel(), 'addToQueue' );
+
+        $this->assertTrue( $this->deliveries->claim( (int) $row['id'], 1 ) );
+        $this->assertFalse( $this->deliveries->claim( (int) $row['id'], 1 ) );
+
+        $claimed = $this->deliveries->get( (int) $row['id'] );
+        $this->assertSame( 'sending', $claimed['status'] );
+        $this->assertSame( 1, (int) $claimed['attempts'] );
+    }
+
+    public function test_claim_rejects_stale_attempt(): void {
+        $row = $this->deliveries->create_or_get( 15, $this->channel(), 'addToQueue' );
+
+        $this->assertFalse( $this->deliveries->claim( (int) $row['id'], 2 ) );
+
+        $unchanged = $this->deliveries->get( (int) $row['id'] );
+        $this->assertSame( 'pending', $unchanged['status'] );
+        $this->assertSame( 0, (int) $unchanged['attempts'] );
+    }
+
+    public function test_reset_for_retry_clears_attempts_and_errors(): void {
+        $row = $this->deliveries->create_or_get( 16, $this->channel(), 'addToQueue' );
+        $this->deliveries->increment_attempts( (int) $row['id'] );
+        $this->deliveries->increment_attempts( (int) $row['id'] );
+        $this->deliveries->mark_failed( (int) $row['id'], 'server_error', 'Try later' );
+
+        $this->deliveries->reset_for_retry( (int) $row['id'] );
+
+        $reset = $this->deliveries->get( (int) $row['id'] );
+        $this->assertSame( 'pending', $reset['status'] );
+        $this->assertSame( 0, (int) $reset['attempts'] );
+        $this->assertNull( $reset['error_code'] );
+        $this->assertNull( $reset['error_message'] );
+    }
+
+    public function test_get_stale_sending_returns_only_old_sending_rows(): void {
+        $old    = $this->deliveries->create_or_get( 17, $this->channel( 'old' ), 'addToQueue' );
+        $recent = $this->deliveries->create_or_get( 17, $this->channel( 'recent' ), 'addToQueue' );
+        $failed = $this->deliveries->create_or_get( 17, $this->channel( 'failed' ), 'addToQueue' );
+
+        $this->assertTrue( $this->deliveries->claim( (int) $old['id'], 1 ) );
+        $this->assertTrue( $this->deliveries->claim( (int) $recent['id'], 1 ) );
+        $this->deliveries->mark_failed( (int) $failed['id'], 'server_error', 'Try later' );
+
+        global $wpdb;
+        $table = $wpdb->prefix . 'lightweb2_deliveries';
+        $wpdb->update(
+            $table,
+            [ 'updated_at' => gmdate( 'Y-m-d H:i:s', time() - 30 * MINUTE_IN_SECONDS ) ],
+            [ 'id' => (int) $old['id'] ]
+        );
+        $wpdb->update(
+            $table,
+            [ 'updated_at' => gmdate( 'Y-m-d H:i:s', time() - 30 * MINUTE_IN_SECONDS ) ],
+            [ 'id' => (int) $failed['id'] ]
+        );
+
+        $stale = $this->deliveries->get_stale_sending( 15 );
+
+        $this->assertCount( 1, $stale );
+        $this->assertSame( (string) $old['id'], (string) $stale[0]['id'] );
+    }
+
     public function test_recent_rows_can_be_filtered_by_status(): void {
         $sent   = $this->deliveries->create_or_get( 12, $this->channel( 'c1' ), 'addToQueue' );
         $failed = $this->deliveries->create_or_get( 12, $this->channel( 'c2' ), 'addToQueue' );

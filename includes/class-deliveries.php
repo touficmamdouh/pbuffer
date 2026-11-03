@@ -142,15 +142,64 @@ final class Deliveries {
         $this->update( $id, [ 'status' => 'canceled' ] );
     }
 
-    public function mark_pending( int $id ): void {
+    public function claim( int $id, int $attempt ): bool {
+        global $wpdb;
+
+        if ( $attempt < 1 ) {
+            return false;
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table.
+        $updated = $wpdb->query(
+            $wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Plugin-owned table name.
+                "UPDATE {$this->table}
+                 SET status = 'sending', attempts = attempts + 1, updated_at = %s
+                 WHERE id = %d
+                   AND status IN ('pending', 'failed')
+                   AND attempts = %d
+                   AND attempts < 4",
+                current_time( 'mysql', true ),
+                $id,
+                $attempt - 1
+            )
+        );
+
+        return 1 === (int) $updated;
+    }
+
+    public function reset_for_retry( int $id ): void {
         $this->update(
             $id,
             [
                 'status'        => 'pending',
+                'attempts'      => 0,
                 'error_code'    => null,
                 'error_message' => null,
             ]
         );
+    }
+
+    public function get_stale_sending( int $minutes = 15 ): array {
+        global $wpdb;
+
+        $cutoff = gmdate(
+            'Y-m-d H:i:s',
+            time() - ( max( 1, $minutes ) * MINUTE_IN_SECONDS )
+        );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Plugin-owned table name.
+                "SELECT * FROM {$this->table}
+                 WHERE status = 'sending' AND updated_at < %s",
+                $cutoff
+            ),
+            ARRAY_A
+        );
+
+        return is_array( $rows ) ? $rows : [];
     }
 
     public function get_recent( array $args = [] ): array {

@@ -19,6 +19,10 @@ final class Installer {
         if ( ! wp_next_scheduled( 'lightweb2_cleanup_logs' ) ) {
             wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'lightweb2_cleanup_logs' );
         }
+
+        if ( ! wp_next_scheduled( 'lightweb2_recover_stale' ) ) {
+            wp_schedule_event( time() + HOUR_IN_SECONDS, 'hourly', 'lightweb2_recover_stale' );
+        }
     }
 
     public static function create_table(): void {
@@ -55,6 +59,7 @@ final class Installer {
     public static function deactivate(): void {
         wp_unschedule_hook( 'lightweb2_deliver_channel' );
         wp_unschedule_hook( 'lightweb2_cleanup_logs' );
+        wp_unschedule_hook( 'lightweb2_recover_stale' );
     }
 
     public static function uninstall(): void {
