@@ -2612,6 +2612,63 @@ final class Test_Message_Builder extends WP_UnitTestCase {
         $this->assertStringContainsString( '#ويب٢', $message );
     }
 
+    public function test_plain_text_fields_are_decoded_and_stripped(): void
+    {
+        $user_id = self::factory()->user->create(
+            [
+                'display_name' => 'R&amp;D',
+                'role'         => 'author',
+            ]
+        );
+        $category_id = self::factory()->category->create( [ 'name' => 'R&amp;D' ] );
+        $post_id     = self::factory()->post->create(
+            [
+                'post_author'   => $user_id,
+                'post_title'    => 'Launch &lt;em&gt;now&lt;/em&gt;',
+                'post_excerpt'  => '<p>Hello &amp; welcome</p>',
+                'post_category' => [ $category_id ],
+            ]
+        );
+        wp_set_post_tags( $post_id, [ 'R&D' ] );
+
+        $message = $this->builder->build(
+            $post_id,
+            "{title}\n{excerpt}\n{author}\n{category}\n{tags}"
+        );
+
+        $this->assertStringNotContainsString( '<em>', $message );
+        $this->assertStringNotContainsString( '<p>', $message );
+        $this->assertStringContainsString( 'Launch now', $message );
+        $this->assertStringContainsString( 'Hello & welcome', $message );
+        $this->assertStringContainsString( 'R&D', $message );
+        $this->assertStringContainsString( '#RD', $message );
+        $this->assertStringNotContainsString( '#RampD', $message );
+    }
+
+    public function test_positive_thumbnail_returns_image_url(): void
+    {
+        $post_id = self::factory()->post->create();
+        $attachment_id = self::factory()->attachment->create(
+            [
+                'post_mime_type' => 'image/jpeg',
+                'post_parent'    => $post_id,
+            ]
+        );
+        set_post_thumbnail( $post_id, $attachment_id );
+
+        add_filter(
+            'post_thumbnail_url',
+            static function (): string {
+                return 'https://example.com/image.jpg';
+            }
+        );
+
+        $this->assertSame(
+            'https://example.com/image.jpg',
+            $this->builder->image_url( $post_id )
+        );
+    }
+
     public function test_image_url_is_null_without_a_thumbnail(): void
     {
         $post_id = self::factory()->post->create();
@@ -2648,24 +2705,47 @@ final class Message_Builder {
             return '';
         }
 
-        $title = html_entity_decode( get_the_title( $post_id ), ENT_QUOTES, 'UTF-8' );
+        $title = wp_strip_all_tags(
+            html_entity_decode( get_the_title( $post_id ), ENT_QUOTES, 'UTF-8' )
+        );
 
         if ( has_excerpt( $post_id ) ) {
             $excerpt = get_the_excerpt( $post_id );
         } else {
-            $content = strip_shortcodes( (string) $post->post_content );
+            $content = html_entity_decode(
+                strip_shortcodes( (string) $post->post_content ),
+                ENT_QUOTES,
+                'UTF-8'
+            );
+            $content = preg_replace( '/<[^>]+>/', ' ', $content );
             $excerpt = wp_trim_words( wp_strip_all_tags( $content ), 20 );
         }
 
-        $excerpt    = html_entity_decode( $excerpt, ENT_QUOTES, 'UTF-8' );
-        $author     = get_the_author_meta( 'display_name', (int) $post->post_author );
+        $excerpt = wp_strip_all_tags(
+            html_entity_decode( $excerpt, ENT_QUOTES, 'UTF-8' )
+        );
+        $author  = wp_strip_all_tags(
+            html_entity_decode(
+                (string) get_the_author_meta( 'display_name', (int) $post->post_author ),
+                ENT_QUOTES,
+                'UTF-8'
+            )
+        );
         $categories = get_the_category( $post_id );
-        $category   = ! empty( $categories ) ? $categories[0]->name : '';
+        $category   = ! empty( $categories )
+            ? wp_strip_all_tags(
+                html_entity_decode( $categories[0]->name, ENT_QUOTES, 'UTF-8' )
+            )
+            : '';
 
         $hashtags = [];
 
         foreach ( get_the_tags( $post_id ) ?: [] as $tag ) {
-            $clean = preg_replace( '/[^\p{L}\p{N}_]/u', '', (string) $tag->name );
+            $clean = preg_replace(
+                '/[^\p{L}\p{N}_]/u',
+                '',
+                html_entity_decode( (string) $tag->name, ENT_QUOTES, 'UTF-8' )
+            );
 
             if ( is_string( $clean ) && '' !== $clean ) {
                 $hashtags[] = '#' . $clean;
