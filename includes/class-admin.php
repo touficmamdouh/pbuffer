@@ -43,7 +43,14 @@ final class Admin {
     }
 
     public function enqueue_assets( string $hook ): void {
-        if ( ! in_array( $hook, [ 'toplevel_page_lightweb2', 'lightweb2_page_lightweb2-activity' ], true ) ) {
+        $is_plugin_screen = in_array(
+            $hook,
+            [ 'toplevel_page_lightweb2', 'lightweb2_page_lightweb2-activity' ],
+            true
+        );
+        $is_post_screen   = in_array( $hook, [ 'post.php', 'post-new.php' ], true );
+
+        if ( ! $is_plugin_screen && ! $is_post_screen ) {
             return;
         }
 
@@ -53,6 +60,10 @@ final class Admin {
             [],
             LIGHTWEB2_VERSION
         );
+
+        if ( ! $is_plugin_screen ) {
+            return;
+        }
 
         wp_enqueue_script(
             'lightweb2-admin',

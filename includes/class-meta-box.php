@@ -100,6 +100,10 @@ final class Meta_Box {
             return;
         }
 
+        if ( 'post' !== get_post_type( $post_id ) ) {
+            return;
+        }
+
         $enabled = isset( $_POST['lightweb2_enabled'] ) ? 'yes' : 'no';
         $mode    = isset( $_POST['lightweb2_mode'] )
             ? sanitize_text_field( wp_unslash( (string) $_POST['lightweb2_mode'] ) )
