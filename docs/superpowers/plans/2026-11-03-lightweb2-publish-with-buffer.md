@@ -1829,7 +1829,9 @@ final class Test_Admin_Ajax extends WP_Ajax_UnitTestCase {
     }
 
     private function prepare_nonce(): void {
-        $_REQUEST['_ajax_nonce'] = wp_create_nonce( 'lightweb2_admin' );
+        $nonce                   = wp_create_nonce( 'lightweb2_admin' );
+        $_REQUEST['nonce']       = $nonce;
+        $_POST['nonce']          = $nonce;
     }
 
     public function test_test_connection_requires_manage_options(): void {
