@@ -857,7 +857,7 @@ git commit -m "feat: add settings sanitization and token preservation"
 ## Task 3: Branded Settings Shell
 
 **Files:**
-- Create: `includes/class-admin.php`, `assets/admin.css`, `assets/icon.svg`
+- Create: `includes/class-admin.php`, `assets/admin.css`, `assets/admin.js`, `assets/icon.svg`
 - Modify: `includes/class-plugin.php`
 - Create: `tests/test-admin.php`
 
@@ -1751,7 +1751,7 @@ git commit -m "feat: add Buffer GraphQL client"
 - Modify: `includes/class-admin.php`
 - Modify: `includes/class-plugin.php`
 - Modify: `lightweb2-publish-with-buffer.php`
-- Create: `assets/admin.js`
+- Modify: `assets/admin.js`
 - Create: `tests/test-admin-ajax.php`
 - Modify: `tests/test-settings.php`
 
