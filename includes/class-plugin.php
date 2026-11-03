@@ -10,6 +10,8 @@ final class Plugin {
     private Settings $settings;
     private Buffer_Client $client;
     private Deliveries $deliveries;
+    private Message_Builder $builder;
+    private Publisher $publisher;
     private Admin $admin;
     private Meta_Box $meta_box;
 
@@ -25,11 +27,19 @@ final class Plugin {
         $this->settings   = new Settings();
         $this->client     = new Buffer_Client();
         $this->deliveries = new Deliveries();
+        $this->builder    = new Message_Builder();
+        $this->publisher  = new Publisher(
+            $this->settings,
+            $this->deliveries,
+            $this->client,
+            $this->builder
+        );
         $this->admin      = new Admin( $this->settings, $this->client );
         $this->meta_box   = new Meta_Box( $this->settings, $this->deliveries );
 
         $this->settings->register();
         $this->admin->register();
         $this->meta_box->register();
+        $this->publisher->register();
     }
 }

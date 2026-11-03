@@ -142,6 +142,17 @@ final class Deliveries {
         $this->update( $id, [ 'status' => 'canceled' ] );
     }
 
+    public function mark_pending( int $id ): void {
+        $this->update(
+            $id,
+            [
+                'status'        => 'pending',
+                'error_code'    => null,
+                'error_message' => null,
+            ]
+        );
+    }
+
     public function get_recent( array $args = [] ): array {
         global $wpdb;
 
