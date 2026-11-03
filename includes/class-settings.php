@@ -45,7 +45,7 @@ final class Settings {
         return 'lightweb2_channels_' . substr( md5( $token ), 0, 12 );
     }
 
-    public function sanitize( mixed $input ): array {
+    public function sanitize( $input ): array {
         $input   = is_array( $input ) ? $input : [];
         $current = $this->get();
 
@@ -78,7 +78,7 @@ final class Settings {
         }
 
         $mode = isset( $input['default_mode'] )
-            ? sanitize_key( (string) $input['default_mode'] )
+            ? sanitize_text_field( (string) $input['default_mode'] )
             : (string) $current['default_mode'];
 
         if ( ! in_array( $mode, [ 'shareNow', 'addToQueue' ], true ) ) {
@@ -111,7 +111,7 @@ final class Settings {
         ];
     }
 
-    public function sanitize_channels( mixed $input ): array {
+    public function sanitize_channels( $input ): array {
         if ( ! is_array( $input ) ) {
             return [];
         }

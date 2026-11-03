@@ -76,6 +76,17 @@ final class Test_Settings extends WP_UnitTestCase {
         $this->assertSame( 'addToQueue', $result['default_mode'] );
     }
 
+    public function test_valid_share_now_mode_is_preserved(): void {
+        $result = $this->settings->sanitize(
+            [
+                'token'        => '',
+                'default_mode' => 'shareNow',
+            ]
+        );
+
+        $this->assertSame( 'shareNow', $result['default_mode'] );
+    }
+
     public function test_retention_days_are_clamped(): void {
         $low  = $this->settings->sanitize( [ 'retention_days' => 0 ] );
         $high = $this->settings->sanitize( [ 'retention_days' => 9999 ] );
