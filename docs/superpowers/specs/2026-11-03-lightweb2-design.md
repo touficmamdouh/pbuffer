@@ -191,6 +191,7 @@ CREATE TABLE {$wpdb->prefix}lightweb2_deliveries (
 Allowed statuses:
 
 - `pending`: created and waiting for the worker.
+- `sending`: atomically claimed by one worker and currently in flight.
 - `sent`: Buffer accepted the post.
 - `failed`: the last attempt failed, with `error_code` and `error_message`.
 - `canceled`: the post was no longer publishable when the worker ran.
@@ -253,14 +254,15 @@ The editor request ends immediately after scheduling. Buffer is not called durin
 The cron hook is `lightweb2_deliver_channel` with arguments `post_id`, `channel_id`, and `attempt`.
 
 1. Load the delivery row.
-2. Return immediately if the status is `sent`.
-3. Confirm the post is still published. If not, mark `canceled`.
-4. Acquire a short-lived lock for `post_id + channel_id`.
-5. Increment `attempts` and set the row to `pending`.
+2. Return immediately if the status is `sent` or `canceled`.
+3. Atomically claim the row with a conditional update. The claim succeeds only when the status is `pending` or `failed`, the stored attempt count matches the event's expected attempt, and `attempts < 4`.
+4. The successful claim sets the status to `sending` and increments `attempts` in the same query.
+5. Confirm the post is still published. If not, mark `canceled`.
 6. Call `Buffer_Client::create_post`.
 7. On success, store the Buffer post ID and mark `sent`.
 8. On failure, store the normalized error and schedule a retry when allowed.
-9. Release the lock.
+
+Because the claim is a single database update, two workers cannot both call Buffer for the same delivery. A duplicate or stale cron event fails the conditional claim and exits without an API call.
 
 ### Retry Policy
 
@@ -286,10 +288,14 @@ Every retry uses the same delivery row and the same unique key. A successful cha
 1. Verify nonce and `manage_options`.
 2. Load the row.
 3. Allow retry only when the status is `failed`.
-4. Reset the row to `pending` without clearing the attempt history.
+4. Reset the row to `pending` and reset the attempt cycle to zero.
 5. Schedule the worker immediately.
 
-Manual retry is not blocked by the automatic maximum. It gives the administrator one explicit extra attempt, and any further automatic retry remains subject to the normal limit.
+Manual retry is not blocked by the automatic maximum. It resets the stored attempt count to zero, marks the row pending, and schedules attempt one. The automatic four-attempt limit applies again to the new manual cycle.
+
+### Stale Worker Recovery
+
+A worker can be interrupted after claiming a row and before writing the result. An hourly `lightweb2_recover_stale` event finds rows in `sending` state older than 15 minutes, marks them failed with code `stale_claim`, and schedules the next attempt when the stored attempt count is below four.
 
 ### Log Retention
 
@@ -301,7 +307,7 @@ Clear logs is a nonce-protected admin action with a confirmation step. It delete
 
 Activation creates the table, adds the default settings option with autoload disabled, stores the database version, and schedules cleanup.
 
-Deactivation unschedules all plugin cron hooks. It does not delete settings, deliveries, or post meta.
+Activation schedules the daily log cleanup and hourly stale-worker recovery. Deactivation unschedules all plugin cron hooks. It does not delete settings, deliveries, or post meta.
 
 Uninstall deletes the settings option, database version option, catalog transients, deliveries table, and the `_lightweb2_enabled` and `_lightweb2_mode` post meta keys.
 
@@ -462,7 +468,9 @@ Use PHPUnit with the WordPress test suite. HTTP calls are replaced through the `
 | Buffer client | Successful account query, successful channel query, successful post, `401`, `403`, `429`, `5xx`, GraphQL errors, malformed payload |
 | Message builder | All variables, excerpt fallback, HTML entity decoding, tags to hashtags including Unicode, missing values, featured image |
 | Publisher | Publish transition creates deliveries, category mismatch skips, disabled post skips, sent channel is skipped, temporary failure schedules retry, permanent failure does not retry, max attempts respected, unpublished post cancels |
-| Deliveries | Unique key prevents duplicates, status transitions, attempt increments, retention cleanup |
+| Deliveries | Unique key prevents duplicates, atomic claim prevents concurrent work, stale events are rejected, status transitions, attempt increments, retention cleanup |
+| Concurrency | Two workers cannot both claim one delivery; a stale or duplicate event makes no Buffer call; a claimed row is recovered after the stale timeout |
+| Retry limits | 401/typed mutation errors do not retry, four failed attempts schedule no fifth automatic event, manual retry resets the attempt cycle |
 | Installer | Table creation, default option, autoload disabled, deactivation preserves data, uninstall removes data |
 
 ### Static Checks

@@ -432,6 +432,10 @@ final class Installer {
         if ( ! wp_next_scheduled( 'lightweb2_cleanup_logs' ) ) {
             wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'lightweb2_cleanup_logs' );
         }
+
+        if ( ! wp_next_scheduled( 'lightweb2_recover_stale' ) ) {
+            wp_schedule_event( time() + HOUR_IN_SECONDS, 'hourly', 'lightweb2_recover_stale' );
+        }
     }
 
     public static function create_table(): void {
@@ -468,6 +472,7 @@ final class Installer {
     public static function deactivate(): void {
         wp_unschedule_hook( 'lightweb2_deliver_channel' );
         wp_unschedule_hook( 'lightweb2_cleanup_logs' );
+        wp_unschedule_hook( 'lightweb2_recover_stale' );
     }
 
     public static function uninstall(): void {
@@ -3544,6 +3549,8 @@ git commit -m "feat: add per-post Buffer controls"
 **Files:**
 - Create: `includes/class-publisher.php`
 - Create: `tests/test-publisher.php`
+- Modify: `includes/class-deliveries.php`
+- Modify: `includes/class-installer.php`
 - Modify: `includes/class-plugin.php`
 - Modify: `lightweb2-publish-with-buffer.php`
 
@@ -3824,6 +3831,7 @@ final class Publisher {
         add_action( 'wp_after_insert_post', [ $this, 'maybe_publish' ], 10, 4 );
         add_action( 'lightweb2_deliver_channel', [ $this, 'deliver' ], 10, 3 );
         add_action( 'lightweb2_cleanup_logs', [ $this, 'cleanup_logs' ] );
+        add_action( 'lightweb2_recover_stale', [ $this, 'recover_stale' ] );
     }
 
     public function maybe_publish(
@@ -3893,7 +3901,11 @@ final class Publisher {
     public function deliver( int $post_id, string $channel_id, int $attempt = 1 ): void {
         $row = $this->deliveries->get_by_post_channel( $post_id, $channel_id );
 
-        if ( null === $row || 'sent' === $row['status'] ) {
+        if ( null === $row || in_array( $row['status'], [ 'sent', 'canceled' ], true ) ) {
+            return;
+        }
+
+        if ( ! $this->deliveries->claim( (int) $row['id'], $attempt ) ) {
             return;
         }
 
@@ -3904,103 +3916,85 @@ final class Publisher {
             return;
         }
 
-        $lock = 'lightweb2_lock_' . $post_id . '_' . $channel_id;
+        $settings = $this->settings->get();
 
-        if ( false !== get_transient( $lock ) ) {
-            wp_schedule_single_event(
-                time() + 5 * MINUTE_IN_SECONDS,
-                'lightweb2_deliver_channel',
-                [ $post_id, $channel_id, $attempt + 1 ]
+        if ( '' === (string) $settings['token'] ) {
+            $this->deliveries->mark_failed(
+                (int) $row['id'],
+                'missing_token',
+                __( 'Reconnect Buffer before publishing.', 'lightweb2-publish-with-buffer' )
             );
             return;
         }
 
-        set_transient( $lock, 1, 5 * MINUTE_IN_SECONDS );
+        $message = $this->builder->build( $post_id, (string) $settings['template'] );
 
-        try {
-            $attempts = $this->deliveries->increment_attempts( (int) $row['id'] );
-            $settings = $this->settings->get();
-
-            if ( '' === (string) $settings['token'] ) {
-                $this->deliveries->mark_failed(
-                    (int) $row['id'],
-                    'missing_token',
-                    __( 'Reconnect Buffer before publishing.', 'lightweb2-publish-with-buffer' )
-                );
-                return;
-            }
-
-            $message = $this->builder->build( $post_id, (string) $settings['template'] );
-
-            if ( '' === $message ) {
-                $this->deliveries->mark_failed(
-                    (int) $row['id'],
-                    'empty_message',
-                    __( 'The message template produced an empty post.', 'lightweb2-publish-with-buffer' )
-                );
-                return;
-            }
-
-            $input = [
-                'text'           => $message,
-                'channelId'      => $channel_id,
-                'schedulingType' => 'automatic',
-                'mode'           => in_array( $row['mode'], [ 'shareNow', 'addToQueue' ], true )
-                    ? $row['mode']
-                    : (string) $settings['default_mode'],
-            ];
-
-            $image = $this->builder->image_url( $post_id );
-
-            if ( null !== $image ) {
-                $input['assets'] = [
-                    [
-                        'image' => [ 'url' => $image ],
-                    ],
-                ];
-            }
-
-            $result = $this->client->create_post( (string) $settings['token'], $input );
-
-            if ( $result['success'] ) {
-                $buffer_id = (string) ( $result['data']['createPost']['post']['id'] ?? '' );
-
-                if ( '' === $buffer_id ) {
-                    $this->deliveries->mark_failed(
-                        (int) $row['id'],
-                        'invalid_response',
-                        __( 'Buffer did not return a post ID.', 'lightweb2-publish-with-buffer' )
-                    );
-                    return;
-                }
-
-                $this->deliveries->mark_sent( (int) $row['id'], $buffer_id );
-                return;
-            }
-
+        if ( '' === $message ) {
             $this->deliveries->mark_failed(
                 (int) $row['id'],
-                (string) $result['code'],
-                (string) $result['message']
+                'empty_message',
+                __( 'The message template produced an empty post.', 'lightweb2-publish-with-buffer' )
             );
+            return;
+        }
 
-            if ( ! $result['retryable'] || $attempts >= 4 ) {
+        $input = [
+            'text'           => $message,
+            'channelId'      => $channel_id,
+            'schedulingType' => 'automatic',
+            'mode'           => in_array( $row['mode'], [ 'shareNow', 'addToQueue' ], true )
+                ? $row['mode']
+                : (string) $settings['default_mode'],
+        ];
+
+        $image = $this->builder->image_url( $post_id );
+
+        if ( null !== $image ) {
+            $input['assets'] = [
+                [
+                    'image' => [ 'url' => $image ],
+                ],
+            ];
+        }
+
+        $result = $this->client->create_post( (string) $settings['token'], $input );
+
+        if ( $result['success'] ) {
+            $buffer_id = (string) ( $result['data']['createPost']['post']['id'] ?? '' );
+
+            if ( '' === $buffer_id ) {
+                $this->deliveries->mark_failed(
+                    (int) $row['id'],
+                    'invalid_response',
+                    __( 'Buffer did not return a post ID.', 'lightweb2-publish-with-buffer' )
+                );
                 return;
             }
 
-            $delays = [
-                1 => 5 * MINUTE_IN_SECONDS,
-                2 => 15 * MINUTE_IN_SECONDS,
-                3 => HOUR_IN_SECONDS,
-            ];
-            $delay = (int) $result['retry_after'] > 0
-                ? (int) $result['retry_after']
-                : ( $delays[ $attempts ] ?? HOUR_IN_SECONDS );
-
-            $this->schedule_delivery( $post_id, $channel_id, $attempts + 1, $delay );
-        } finally {
-            delete_transient( $lock );
+            $this->deliveries->mark_sent( (int) $row['id'], $buffer_id );
+            return;
         }
+
+        $this->deliveries->mark_failed(
+            (int) $row['id'],
+            (string) $result['code'],
+            (string) $result['message']
+        );
+
+        if ( ! $result['retryable'] || $attempt >= 4 ) {
+            return;
+        }
+
+        $delays = [
+            1 => 5 * MINUTE_IN_SECONDS,
+            2 => 15 * MINUTE_IN_SECONDS,
+            3 => HOUR_IN_SECONDS,
+        ];
+        $delay = (int) $result['retry_after'] > 0
+            ? (int) $result['retry_after']
+            : ( $delays[ $attempt ] ?? HOUR_IN_SECONDS );
+
+        $this->schedule_delivery( $post_id, $channel_id, $attempt + 1, $delay );
     }
 
     public function retry( int $delivery_id ): bool {
@@ -4010,14 +4004,36 @@ final class Publisher {
             return false;
         }
 
-        $this->deliveries->mark_pending( $delivery_id );
-        $this->schedule_delivery(
-            (int) $row['post_id'],
-            (string) $row['channel_id'],
-            (int) $row['attempts'] + 1
-        );
+        $this->deliveries->reset_for_retry( $delivery_id );
+
+        if ( ! $this->schedule_delivery( (int) $row['post_id'], (string) $row['channel_id'], 1 ) ) {
+            $this->deliveries->mark_failed(
+                $delivery_id,
+                'schedule_failed',
+                __( 'Could not schedule the retry.', 'lightweb2-publish-with-buffer' )
+            );
+            return false;
+        }
 
         return true;
+    }
+
+    public function recover_stale(): void {
+        foreach ( $this->deliveries->get_stale_sending( 15 ) as $row ) {
+            $this->deliveries->mark_failed(
+                (int) $row['id'],
+                'stale_claim',
+                __( 'The delivery was interrupted and will be retried.', 'lightweb2-publish-with-buffer' )
+            );
+
+            if ( (int) $row['attempts'] < 4 ) {
+                $this->schedule_delivery(
+                    (int) $row['post_id'],
+                    (string) $row['channel_id'],
+                    (int) $row['attempts'] + 1
+                );
+            }
+        }
     }
 
     public function cleanup_logs(): void {
@@ -4030,34 +4046,85 @@ final class Publisher {
         string $channel_id,
         int $attempt,
         int $delay = 1
-    ): void {
+    ): bool {
         $args = [ $post_id, $channel_id, $attempt ];
 
-        if ( false === wp_next_scheduled( 'lightweb2_deliver_channel', $args ) ) {
-            wp_schedule_single_event(
-                time() + max( 1, $delay ),
-                'lightweb2_deliver_channel',
-                $args
-            );
+        if ( false !== wp_next_scheduled( 'lightweb2_deliver_channel', $args ) ) {
+            return true;
         }
+
+        return (bool) wp_schedule_single_event(
+            time() + max( 1, $delay ),
+            'lightweb2_deliver_channel',
+            $args
+        );
     }
 }
 ```
 
-- [ ] **Step 4: Add `mark_pending()` to the deliveries repository**
+- [ ] **Step 4: Add the atomic claim and stale recovery methods**
 
-Add this public method to `includes/class-deliveries.php`:
+Add these methods to `includes/class-deliveries.php`:
 
 ```php
-    public function mark_pending( int $id ): void {
+    public function claim( int $id, int $attempt ): bool {
+        global $wpdb;
+
+        if ( $attempt < 1 ) {
+            return false;
+        }
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table.
+        $updated = $wpdb->query(
+            $wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Plugin-owned table name.
+                "UPDATE {$this->table}
+                 SET status = 'sending', attempts = attempts + 1, updated_at = %s
+                 WHERE id = %d
+                   AND status IN ('pending', 'failed')
+                   AND attempts = %d
+                   AND attempts < 4",
+                current_time( 'mysql', true ),
+                $id,
+                $attempt - 1
+            )
+        );
+
+        return 1 === (int) $updated;
+    }
+
+    public function reset_for_retry( int $id ): void {
         $this->update(
             $id,
             [
                 'status'        => 'pending',
+                'attempts'      => 0,
                 'error_code'    => null,
                 'error_message' => null,
             ]
         );
+    }
+
+    public function get_stale_sending( int $minutes = 15 ): array {
+        global $wpdb;
+
+        $cutoff = gmdate(
+            'Y-m-d H:i:s',
+            time() - ( max( 1, $minutes ) * MINUTE_IN_SECONDS )
+        );
+
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Plugin-owned table name.
+                "SELECT * FROM {$this->table}
+                 WHERE status = 'sending' AND updated_at < %s",
+                $cutoff
+            ),
+            ARRAY_A
+        );
+
+        return is_array( $rows ) ? $rows : [];
     }
 ```
 
@@ -4109,7 +4176,22 @@ composer test -- --filter Test_Publisher
 
 Expected: PASS.
 
-- [ ] **Step 7: Run the full suite to catch constructor changes**
+- [ ] **Step 7: Add the concurrency and retry-limit regression tests**
+
+Add these focused tests before running the full suite:
+
+- `Test_Deliveries`: `claim()` succeeds once, rejects a second claim while the row is `sending`, and rejects a stale attempt number.
+- `Test_Deliveries`: `reset_for_retry()` clears attempts and error fields and sets `pending`.
+- `Test_Deliveries`: `get_stale_sending()` returns only claimed rows older than the cutoff.
+- `Test_Publisher`: a 401 or typed mutation failure marks `failed` and schedules no retry.
+- `Test_Publisher`: four failed attempts leave `attempts = 4` and schedule no fifth automatic event.
+- `Test_Publisher`: a stale event attempt makes no HTTP call and leaves the row untouched.
+- `Test_Publisher`: manual retry resets attempts to zero and schedules attempt one.
+- `Test_Publisher`: `recover_stale()` marks an old `sending` row failed and schedules the next attempt.
+
+Expected: all focused tests pass, including the existing happy-path tests.
+
+- [ ] **Step 8: Run the full suite to catch constructor changes**
 
 ```bash
 composer test
@@ -4117,10 +4199,10 @@ composer test
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add includes/class-publisher.php includes/class-deliveries.php includes/class-plugin.php lightweb2-publish-with-buffer.php tests
+git add includes/class-publisher.php includes/class-deliveries.php includes/class-installer.php includes/class-plugin.php lightweb2-publish-with-buffer.php tests
 git commit -m "feat: add asynchronous publishing with per-channel retries"
 ```
 
@@ -4333,7 +4415,7 @@ public function render_activity_page(): void {
                 <span><?php esc_html_e( 'Status', 'lightweb2-publish-with-buffer' ); ?></span>
                 <select name="status">
                     <option value=""><?php esc_html_e( 'All statuses', 'lightweb2-publish-with-buffer' ); ?></option>
-                    <?php foreach ( [ 'pending', 'sent', 'failed', 'canceled' ] as $option ) : ?>
+                    <?php foreach ( [ 'pending', 'sending', 'sent', 'failed', 'canceled' ] as $option ) : ?>
                         <option value="<?php echo esc_attr( $option ); ?>" <?php selected( $status, $option ); ?>><?php echo esc_html( ucfirst( $option ) ); ?></option>
                     <?php endforeach; ?>
                 </select>
@@ -4489,6 +4571,11 @@ Add badge and filter styles to `assets/admin.css`:
 .lightweb2-badge.is-pending {
   color: #b45309;
   background: #fef3c7;
+}
+
+.lightweb2-badge.is-sending {
+  color: #1d4ed8;
+  background: #dbeafe;
 }
 
 .lightweb2-badge.is-canceled {
