@@ -74,6 +74,7 @@ final class Admin {
 		add_action( 'wp_ajax_lightweb2_fetch_channels', array( $this, 'ajax_fetch_channels' ) );
 		add_action( 'wp_ajax_lightweb2_disconnect', array( $this, 'ajax_disconnect' ) );
 		add_action( 'wp_ajax_lightweb2_manual_publish', array( $this, 'ajax_manual_publish' ) );
+		add_action( 'wp_ajax_lightweb2_manual_publish_bulk', array( $this, 'ajax_manual_publish_bulk' ) );
 		add_action( 'wp_ajax_lightweb2_retry_delivery', array( $this, 'ajax_retry_delivery' ) );
 		add_action( 'wp_ajax_lightweb2_clear_logs', array( $this, 'ajax_clear_logs' ) );
 	}
@@ -150,7 +151,16 @@ final class Admin {
 			true
 		);
 
-		$settings = $this->settings->get();
+		$settings     = $this->settings->get();
+		$recent_posts = get_posts(
+			array(
+				'post_type'      => 'post',
+				'post_status'    => 'publish',
+				'posts_per_page' => 1,
+				'orderby'        => 'date',
+				'order'          => 'DESC',
+			)
+		);
 
 		wp_localize_script(
 			'lightweb2-admin',
@@ -164,6 +174,7 @@ final class Admin {
 						$settings['channels']
 					)
 				),
+				'previewValues'    => $this->get_preview_values( $recent_posts[0] ?? null ),
 				'strings'          => array(
 					'testing'           => __( 'Testing connection…', 'lightweb2-publish-with-buffer' ),
 					'loading'           => __( 'Loading channels…', 'lightweb2-publish-with-buffer' ),
@@ -175,6 +186,10 @@ final class Admin {
 					'confirmClearLogs'  => __( 'Delete all delivery history? This cannot be undone. Clearing history also removes duplicate protection, so future publishes may be sent to Buffer again.', 'lightweb2-publish-with-buffer' ),
 					'manualPublishing'  => __( 'Queueing post…', 'lightweb2-publish-with-buffer' ),
 					'manualQueued'      => __( 'Queued', 'lightweb2-publish-with-buffer' ),
+					'bulkPublishing'    => __( 'Queueing selected posts…', 'lightweb2-publish-with-buffer' ),
+					'bulkQueued'        => __( 'Selected posts queued.', 'lightweb2-publish-with-buffer' ),
+					'selectPosts'       => __( 'Select at least one post first.', 'lightweb2-publish-with-buffer' ),
+					'insertVariable'    => __( 'Insert variable', 'lightweb2-publish-with-buffer' ),
 				),
 			)
 		);
@@ -354,6 +369,109 @@ final class Admin {
 	}
 
 	/**
+	 * Queue several published posts from the manual publishing screen.
+	 *
+	 * @return void
+	 */
+	public function ajax_manual_publish_bulk(): void {
+		$this->verify_ajax();
+
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Verified by verify_ajax().
+		$post_ids = isset( $_POST['post_ids'] ) && is_array( $_POST['post_ids'] )
+			? array_values( array_unique( array_filter( array_map( 'absint', wp_unslash( $_POST['post_ids'] ) ) ) ) )
+			: array();
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+		$post_ids = array_slice( $post_ids, 0, 20 );
+
+		if ( empty( $post_ids ) ) {
+			wp_send_json_error(
+				array( 'message' => __( 'Select at least one published post.', 'lightweb2-publish-with-buffer' ) ),
+				400
+			);
+		}
+
+		$queued      = 0;
+		$failed      = 0;
+		$first_error = '';
+
+		foreach ( $post_ids as $post_id ) {
+			$result = $this->publisher->queue_post( $post_id );
+
+			if ( $result['success'] ) {
+				++$queued;
+			} else {
+				++$failed;
+				if ( '' === $first_error ) {
+					$first_error = (string) $result['message'];
+				}
+			}
+		}
+
+		if ( 0 === $queued ) {
+			$message = '' !== $first_error
+				? $first_error
+				: __( 'No posts were queued.', 'lightweb2-publish-with-buffer' );
+			wp_send_json_error( array( 'message' => $message ), 400 );
+		}
+
+		$message = sprintf(
+			/* translators: 1: queued post count, 2: failed post count. */
+			__( '%1$d post(s) queued. %2$d skipped.', 'lightweb2-publish-with-buffer' ),
+			$queued,
+			$failed
+		);
+
+		wp_send_json_success(
+			array(
+				'queued'  => $queued,
+				'failed'  => $failed,
+				'message' => $message,
+			)
+		);
+	}
+
+	/**
+	 * Build real template values from a post for the admin preview.
+	 *
+	 * @param \WP_Post|null $post Preview post.
+	 * @return array<string, string>
+	 */
+	private function get_preview_values( ?\WP_Post $post ): array {
+		$sample = array(
+			'{title}'    => __( 'A clearer way to publish', 'lightweb2-publish-with-buffer' ),
+			'{url}'      => 'https://example.com/article',
+			'{excerpt}'  => __( 'A short summary of the article.', 'lightweb2-publish-with-buffer' ),
+			'{author}'   => 'LightWeb2',
+			'{category}' => __( 'Product', 'lightweb2-publish-with-buffer' ),
+			'{tags}'     => '#WordPress #Buffer',
+		);
+
+		if ( ! $post instanceof \WP_Post ) {
+			return $sample;
+		}
+
+		$categories = get_the_category( $post->ID );
+		$tags       = get_the_tags( $post->ID );
+		$tag_text   = array();
+
+		if ( is_array( $tags ) ) {
+			foreach ( $tags as $tag ) {
+				$tag_text[] = '#' . preg_replace( '/[^\p{L}\p{N}_-]+/u', '', (string) $tag->name );
+			}
+		}
+
+		return array(
+			'{title}'    => (string) get_the_title( $post ),
+			'{url}'      => (string) get_permalink( $post ),
+			'{excerpt}'  => (string) get_the_excerpt( $post ),
+			'{author}'   => (string) get_the_author_meta( 'display_name', (int) $post->post_author ),
+			'{category}' => isset( $categories[0] ) ? (string) $categories[0]->name : '',
+			'{tags}'     => implode( ' ', array_filter( $tag_text ) ),
+		);
+	}
+
+	/**
 	 * Render the settings screen.
 	 *
 	 * @return void
@@ -363,9 +481,9 @@ final class Admin {
 			return;
 		}
 
-		$settings     = $this->settings->get();
-		$has_token    = '' !== (string) $settings['token'];
-		$recent_posts = get_posts(
+		$settings               = $this->settings->get();
+		$has_token              = '' !== (string) $settings['token'];
+		$recent_posts           = get_posts(
 			array(
 				'post_type'      => 'post',
 				'post_status'    => 'publish',
@@ -374,43 +492,64 @@ final class Admin {
 				'order'          => 'DESC',
 			)
 		);
+		$preview_values         = $this->get_preview_values( $recent_posts[0] ?? null );
+		$selected_channel_count = count( $settings['channels'] );
 		?>
 		<div class="wrap lightweb2-wrap">
 			<header class="lightweb2-header">
-				<div>
-					<a class="lightweb2-brand" href="https://lightweb2.com/" target="_blank" rel="noopener noreferrer">
-						<img src="<?php echo esc_url( LIGHTWEB2_URL . 'assets/lightweb2-logo.png' ); ?>" alt="LightWeb2" />
-					</a>
+				<div class="lightweb2-header-copy">
+					<p class="lightweb2-eyebrow"><span class="dashicons dashicons-share" aria-hidden="true"></span><?php esc_html_e( 'Publishing workspace', 'lightweb2-publish-with-buffer' ); ?></p>
 					<h1><?php esc_html_e( 'Publish with Buffer', 'lightweb2-publish-with-buffer' ); ?></h1>
 					<p class="lightweb2-lede"><?php esc_html_e( 'Connect Buffer, choose your channels, and share WordPress posts without the busywork.', 'lightweb2-publish-with-buffer' ); ?></p>
 				</div>
-				<span class="lightweb2-version">v<?php echo esc_html( LIGHTWEB2_VERSION ); ?></span>
+				<div class="lightweb2-header-meta">
+					<a class="lightweb2-header-brand" href="https://lightweb2.com/" target="_blank" rel="noopener noreferrer"><img src="<?php echo esc_url( LIGHTWEB2_URL . 'assets/lightweb2-logo.png' ); ?>" alt="LightWeb2" /></a>
+					<div class="lightweb2-header-stats"><span class="lightweb2-connection-chip <?php echo $has_token ? 'is-connected' : ''; ?>"><span class="lightweb2-status-mark" aria-hidden="true"></span><?php echo $has_token ? esc_html__( 'Connected to Buffer', 'lightweb2-publish-with-buffer' ) : esc_html__( 'Not connected', 'lightweb2-publish-with-buffer' ); ?></span><span class="lightweb2-stat"><strong><?php echo esc_html( (string) $selected_channel_count ); ?></strong> <?php esc_html_e( 'channels selected', 'lightweb2-publish-with-buffer' ); ?></span></div>
+					<span class="lightweb2-version">v<?php echo esc_html( LIGHTWEB2_VERSION ); ?></span>
+				</div>
 			</header>
 
 			<?php settings_errors(); ?>
 
-			<section class="lightweb2-card lightweb2-card--manual-publish">
+			<nav class="lightweb2-local-nav" aria-label="<?php esc_attr_e( 'LightWeb2 sections', 'lightweb2-publish-with-buffer' ); ?>">
+				<a class="is-active" href="#lightweb2-articles"><span class="dashicons dashicons-media-document" aria-hidden="true"></span><?php esc_html_e( 'Articles', 'lightweb2-publish-with-buffer' ); ?></a>
+				<a href="#lightweb2-connection"><span class="dashicons dashicons-admin-plugins" aria-hidden="true"></span><?php esc_html_e( 'Connection', 'lightweb2-publish-with-buffer' ); ?></a>
+				<a href="#lightweb2-channels-section"><span class="dashicons dashicons-share-alt2" aria-hidden="true"></span><?php esc_html_e( 'Channels', 'lightweb2-publish-with-buffer' ); ?></a>
+				<a href="#lightweb2-message"><span class="dashicons dashicons-edit" aria-hidden="true"></span><?php esc_html_e( 'Message', 'lightweb2-publish-with-buffer' ); ?></a>
+				<a href="<?php echo esc_url( add_query_arg( array( 'page' => 'lightweb2-activity' ), admin_url( 'admin.php' ) ) ); ?>"><span class="dashicons dashicons-clock" aria-hidden="true"></span><?php esc_html_e( 'Activity', 'lightweb2-publish-with-buffer' ); ?></a>
+			</nav>
+
+			<section id="lightweb2-articles" class="lightweb2-card lightweb2-card--manual-publish">
 				<div class="lightweb2-section-heading">
 					<div>
-						<h2><?php esc_html_e( 'Publish an article', 'lightweb2-publish-with-buffer' ); ?></h2>
-						<p class="description"><?php esc_html_e( 'Choose one of your latest published articles and send it to the selected Buffer channels.', 'lightweb2-publish-with-buffer' ); ?></p>
+						<p class="lightweb2-eyebrow"><?php esc_html_e( 'Manual publishing', 'lightweb2-publish-with-buffer' ); ?></p>
+						<h2><?php esc_html_e( 'Latest published articles', 'lightweb2-publish-with-buffer' ); ?></h2>
+						<p class="description"><?php esc_html_e( 'Select articles and send them to your selected Buffer channels.', 'lightweb2-publish-with-buffer' ); ?></p>
 					</div>
-					<span class="lightweb2-count"><?php echo esc_html( (string) count( $recent_posts ) ); ?>/20</span>
+					<div class="lightweb2-heading-actions"><span class="lightweb2-count"><?php echo esc_html( (string) count( $recent_posts ) ); ?>/20</span><button type="button" class="button lightweb2-refresh" onclick="window.location.reload()"><span class="dashicons dashicons-update" aria-hidden="true"></span><?php esc_html_e( 'Refresh', 'lightweb2-publish-with-buffer' ); ?></button></div>
 				</div>
+				<?php if ( ! empty( $recent_posts ) ) : ?>
+					<div class="lightweb2-bulk-toolbar"><label class="lightweb2-check-label"><input type="checkbox" id="lightweb2-select-all" /><span><?php esc_html_e( 'Select all', 'lightweb2-publish-with-buffer' ); ?></span></label><button type="button" class="button button-primary lightweb2-bulk-publish" id="lightweb2-bulk-publish" disabled><span class="dashicons dashicons-share" aria-hidden="true"></span><?php esc_html_e( 'Publish selected', 'lightweb2-publish-with-buffer' ); ?></button></div>
+				<?php endif; ?>
 				<?php if ( empty( $recent_posts ) ) : ?>
 					<p class="description"><?php esc_html_e( 'No published articles found yet.', 'lightweb2-publish-with-buffer' ); ?></p>
 				<?php else : ?>
 					<div class="lightweb2-post-list">
 						<?php foreach ( $recent_posts as $recent_post ) : ?>
-							<article class="lightweb2-post-row">
+							<?php
+							$recent_title = get_the_title( $recent_post );
+							$categories   = get_the_category( $recent_post->ID );
+							$category     = isset( $categories[0] ) ? $categories[0]->name : __( 'Uncategorized', 'lightweb2-publish-with-buffer' );
+							?>
+							<article class="lightweb2-post-row" data-post-row="<?php echo esc_attr( (string) $recent_post->ID ); ?>">
+								<label class="lightweb2-post-check"><input type="checkbox" class="lightweb2-post-select" value="<?php echo esc_attr( (string) $recent_post->ID ); ?>" aria-label="<?php echo esc_attr( $recent_title ); ?>" /><span class="screen-reader-text"><?php echo esc_html( $recent_title ); ?></span></label>
 								<div class="lightweb2-post-copy">
-									<?php $recent_title = get_the_title( $recent_post ); ?>
-									<strong><?php echo esc_html( $recent_title ? $recent_title : __( '(Untitled)', 'lightweb2-publish-with-buffer' ) ); ?></strong>
-									<small><?php echo esc_html( get_the_date( '', $recent_post ) ); ?></small>
+									<strong title="<?php echo esc_attr( $recent_title ); ?>"><?php echo esc_html( $recent_title ? $recent_title : __( '(Untitled)', 'lightweb2-publish-with-buffer' ) ); ?></strong>
+									<small><?php echo esc_html( get_the_author_meta( 'display_name', (int) $recent_post->post_author ) ); ?></small>
 								</div>
-								<button type="button" class="button lightweb2-manual-publish" data-post-id="<?php echo esc_attr( (string) $recent_post->ID ); ?>">
-									<?php esc_html_e( 'Publish', 'lightweb2-publish-with-buffer' ); ?>
-								</button>
+								<span class="lightweb2-category-badge"><?php echo esc_html( $category ); ?></span>
+								<time datetime="<?php echo esc_attr( get_the_date( 'c', $recent_post ) ); ?>"><?php echo esc_html( get_the_date( '', $recent_post ) ); ?></time>
+								<button type="button" class="button lightweb2-manual-publish" data-post-id="<?php echo esc_attr( (string) $recent_post->ID ); ?>"><span class="dashicons dashicons-share" aria-hidden="true"></span><?php esc_html_e( 'Publish now', 'lightweb2-publish-with-buffer' ); ?></button>
 							</article>
 						<?php endforeach; ?>
 					</div>
@@ -420,7 +559,7 @@ final class Admin {
 			<form action="options.php" method="post" class="lightweb2-form">
 				<?php settings_fields( 'lightweb2_settings_group' ); ?>
 
-				<section class="lightweb2-card lightweb2-card--connection">
+				<section id="lightweb2-connection" class="lightweb2-card lightweb2-card--connection">
 					<h2><?php esc_html_e( 'Connection', 'lightweb2-publish-with-buffer' ); ?></h2>
 					<p class="description"><?php esc_html_e( 'Create a personal API key in Buffer, then paste it here.', 'lightweb2-publish-with-buffer' ); ?></p>
 					<label for="lightweb2-token" class="lightweb2-label"><?php esc_html_e( 'Buffer API Token', 'lightweb2-publish-with-buffer' ); ?></label>
@@ -448,7 +587,7 @@ final class Admin {
 					<p class="lightweb2-ajax-status" id="lightweb2-ajax-status" role="status" aria-live="polite"></p>
 				</section>
 
-				<section class="lightweb2-card lightweb2-card--channels">
+				<section id="lightweb2-channels-section" class="lightweb2-card lightweb2-card--channels">
 					<h2><?php esc_html_e( 'Channels', 'lightweb2-publish-with-buffer' ); ?></h2>
 					<input type="hidden" name="lightweb2_settings[channels_submitted]" value="1" />
 					<div id="lightweb2-channels" class="lightweb2-channels">
@@ -471,7 +610,7 @@ final class Admin {
 					</div>
 				</section>
 
-				<section class="lightweb2-card lightweb2-card--publishing">
+				<section id="lightweb2-message" class="lightweb2-card lightweb2-card--publishing">
 					<h2><?php esc_html_e( 'Publishing defaults', 'lightweb2-publish-with-buffer' ); ?></h2>
 					<label for="lightweb2-mode" class="lightweb2-label"><?php esc_html_e( 'Default mode', 'lightweb2-publish-with-buffer' ); ?></label>
 					<select id="lightweb2-mode" name="lightweb2_settings[default_mode]">
@@ -481,15 +620,16 @@ final class Admin {
 
 					<label for="lightweb2-template" class="lightweb2-label"><?php esc_html_e( 'Message template', 'lightweb2-publish-with-buffer' ); ?></label>
 					<textarea id="lightweb2-template" name="lightweb2_settings[template]" rows="5" class="large-text"><?php echo esc_textarea( $settings['template'] ); ?></textarea>
-					<p class="description">
-						<?php esc_html_e( 'Variables:', 'lightweb2-publish-with-buffer' ); ?>
-						<code>{title}</code> <code>{url}</code> <code>{excerpt}</code>
-						<code>{author}</code> <code>{category}</code> <code>{tags}</code>
-					</p>
+					<div class="lightweb2-variable-list" aria-label="<?php esc_attr_e( 'Template variables', 'lightweb2-publish-with-buffer' ); ?>">
+						<?php foreach ( array( '{title}', '{excerpt}', '{url}', '{author}', '{category}', '{tags}' ) as $variable ) : ?>
+							<button type="button" class="button lightweb2-variable-button" data-variable="<?php echo esc_attr( $variable ); ?>" title="<?php esc_attr_e( 'Insert variable', 'lightweb2-publish-with-buffer' ); ?>"><?php echo esc_html( $variable ); ?></button>
+						<?php endforeach; ?>
+					</div>
 					<label class="lightweb2-label"><?php esc_html_e( 'Preview', 'lightweb2-publish-with-buffer' ); ?></label>
-					<pre id="lightweb2-preview" class="lightweb2-preview"></pre>
+					<pre id="lightweb2-preview" class="lightweb2-preview"><?php echo esc_html( strtr( (string) $settings['template'], $preview_values ) ); ?></pre>
 				</section>
 
+				<div class="lightweb2-utility-bar">
 				<section class="lightweb2-card lightweb2-card--filtering">
 					<h2><?php esc_html_e( 'Filtering', 'lightweb2-publish-with-buffer' ); ?></h2>
 					<label for="lightweb2-category" class="lightweb2-label"><?php esc_html_e( 'Category filter', 'lightweb2-publish-with-buffer' ); ?></label>
@@ -515,6 +655,7 @@ final class Admin {
 				</section>
 
 				<?php submit_button( __( 'Save Settings', 'lightweb2-publish-with-buffer' ) ); ?>
+				</div>
 			</form>
 
 			<?php $this->render_brand_footer(); ?>

@@ -47,6 +47,8 @@ final class Test_Admin extends WP_UnitTestCase {
         $this->assertStringContainsString( 'LightWeb2', $html );
         $this->assertStringContainsString( 'lightweb2_settings[token]', $html );
         $this->assertStringContainsString( 'Token is set', $html );
+        $this->assertStringContainsString( 'lightweb2-bulk-publish', $html );
+        $this->assertStringContainsString( 'lightweb2-variable-button', $html );
         $this->assertStringNotContainsString( 'secret-token-value', $html );
     }
 
@@ -82,6 +84,7 @@ final class Test_Admin extends WP_UnitTestCase {
         $this->assertIsString( $data );
         $this->assertStringNotContainsString( 'secret-token-value', $data );
         $this->assertStringContainsString( '"selectedChannels":["c1"]', $data );
+        $this->assertStringContainsString( 'previewValues', $data );
     }
 
     public function test_post_editor_enqueues_admin_style_only(): void {

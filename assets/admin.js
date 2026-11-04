@@ -34,7 +34,13 @@
     body.append('nonce', cfg.nonce);
     body.append('token', tokenInput ? tokenInput.value : '');
 
-    Object.entries(extra).forEach(([key, value]) => body.append(key, value));
+    Object.entries(extra).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        value.forEach((item) => body.append(`${key}[]`, item));
+      } else {
+        body.append(key, value);
+      }
+    });
 
     const response = await fetch(cfg.ajaxUrl, {
       method: 'POST',
@@ -151,6 +157,7 @@
         setAjaxStatus(data.message || '');
         button.textContent = cfg.strings.manualQueued;
         button.classList.add('is-queued');
+        button.closest('.lightweb2-post-row')?.classList.add('is-queued');
         button.removeAttribute('aria-busy');
       } catch (error) {
         button.disabled = false;
@@ -158,6 +165,67 @@
         setAjaxStatus(error.message, true);
       }
     });
+  });
+
+  const postChecks = Array.from(document.querySelectorAll('.lightweb2-post-select'));
+  const selectAll = byId('lightweb2-select-all');
+  const bulkButton = byId('lightweb2-bulk-publish');
+
+  const syncBulkState = () => {
+    const checked = postChecks.filter((checkbox) => checkbox.checked);
+    if (bulkButton) {
+      bulkButton.disabled = checked.length === 0;
+    }
+    if (selectAll) {
+      selectAll.checked = postChecks.length > 0 && checked.length === postChecks.length;
+      selectAll.indeterminate = checked.length > 0 && checked.length < postChecks.length;
+    }
+  };
+
+  selectAll?.addEventListener('change', () => {
+    postChecks.forEach((checkbox) => {
+      checkbox.checked = selectAll.checked;
+    });
+    syncBulkState();
+  });
+
+  postChecks.forEach((checkbox) => checkbox.addEventListener('change', syncBulkState));
+
+  bulkButton?.addEventListener('click', async () => {
+    const postIds = postChecks.filter((checkbox) => checkbox.checked).map((checkbox) => checkbox.value);
+
+    if (!postIds.length) {
+      setAjaxStatus(cfg.strings.selectPosts, true);
+      return;
+    }
+
+    bulkButton.disabled = true;
+    bulkButton.setAttribute('aria-busy', 'true');
+    setAjaxStatus(cfg.strings.bulkPublishing);
+
+    try {
+      const data = await request('lightweb2_manual_publish_bulk', { post_ids: postIds });
+      setAjaxStatus(data.message || cfg.strings.bulkQueued);
+      postChecks.forEach((checkbox) => {
+        if (!checkbox.checked) {
+          return;
+        }
+        checkbox.checked = false;
+        checkbox.closest('.lightweb2-post-row')?.classList.add('is-queued');
+        const button = checkbox.closest('.lightweb2-post-row')?.querySelector('.lightweb2-manual-publish');
+        if (button) {
+          button.disabled = true;
+          button.textContent = cfg.strings.manualQueued;
+          button.classList.add('is-queued');
+        }
+      });
+      bulkButton.removeAttribute('aria-busy');
+      syncBulkState();
+    } catch (error) {
+      bulkButton.disabled = false;
+      bulkButton.removeAttribute('aria-busy');
+      setAjaxStatus(error.message, true);
+    }
   });
 
   document.querySelectorAll('.lightweb2-retry').forEach((button) => {
@@ -195,7 +263,7 @@
       return;
     }
 
-    const sample = {
+    const sample = cfg.previewValues || {
       '{title}': 'A clearer way to publish',
       '{url}': 'https://example.com/article',
       '{excerpt}': 'A short summary of the article.',
@@ -212,6 +280,22 @@
 
   template?.addEventListener('input', updatePreview);
   updatePreview();
+
+  document.querySelectorAll('.lightweb2-variable-button').forEach((button) => {
+    button.addEventListener('click', () => {
+      if (!template) {
+        return;
+      }
+
+      const variable = button.dataset.variable || '';
+      const start = template.selectionStart;
+      const end = template.selectionEnd;
+      template.value = `${template.value.slice(0, start)}${variable}${template.value.slice(end)}`;
+      template.focus();
+      template.setSelectionRange(start + variable.length, start + variable.length);
+      template.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  });
 
   if (channelsBox) {
     channelsBox.addEventListener('change', (event) => {

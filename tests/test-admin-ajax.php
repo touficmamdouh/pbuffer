@@ -402,4 +402,21 @@ final class Test_Admin_Ajax extends WP_Ajax_UnitTestCase {
         $this->assertTrue( $response['success'] );
         $this->assertSame( 0, $count );
     }
+
+    public function test_bulk_manual_publish_requires_selected_posts(): void {
+        wp_set_current_user( self::factory()->user->create( [ 'role' => 'administrator' ] ) );
+        $this->prepare_nonce();
+        $_POST['post_ids'] = [];
+
+        try {
+            $this->_handleAjax( 'lightweb2_manual_publish_bulk' );
+        } catch ( WPAjaxDieContinueException $e ) {
+            // Expected after wp_send_json_error().
+        }
+
+        $response = json_decode( $this->_last_response, true );
+
+        $this->assertFalse( $response['success'] );
+        $this->assertSame( 'Select at least one published post.', $response['data']['message'] );
+    }
 }

@@ -629,3 +629,679 @@
     animation: none !important;
   }
 }
+
+/* Dashboard composition */
+.lightweb2-wrap {
+  max-width: 1240px;
+  margin-inline: 0;
+  padding-block: 10px 36px;
+}
+
+.lightweb2-header {
+  align-items: stretch;
+  min-height: 156px;
+  margin: 12px 0 16px;
+  padding: 28px 32px;
+  background: #111d3a;
+  border: 1px solid #26365f;
+  border-radius: 16px;
+  box-shadow: 0 14px 32px rgb(17 29 58 / 15%);
+}
+
+.lightweb2-header-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.lightweb2-header-kicker,
+.lightweb2-header .lightweb2-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 10px;
+  color: #9fbaff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.lightweb2-header-kicker .dashicons,
+.lightweb2-header .lightweb2-eyebrow .dashicons {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+}
+
+.lightweb2-header h1 {
+  font-size: clamp(28px, 3vw, 38px);
+  letter-spacing: -0.04em;
+}
+
+.lightweb2-header-meta {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 280px;
+}
+
+.lightweb2-header-brand {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 10px;
+  background: #fff;
+  border-radius: 8px;
+}
+
+.lightweb2-header-brand img {
+  display: block;
+  width: 142px;
+  height: auto;
+}
+
+.lightweb2-header-stats {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.lightweb2-connection-chip,
+.lightweb2-stat {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 11px;
+  color: #dce5ff;
+  background: #1b2a50;
+  border: 1px solid #344879;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.lightweb2-connection-chip.is-connected {
+  color: #d8f4e4;
+  background: #134936;
+  border-color: #287c5e;
+}
+
+.lightweb2-status-mark {
+  width: 8px;
+  height: 8px;
+  margin-inline-end: 7px;
+  background: #94a3b8;
+  border: 2px solid rgb(255 255 255 / 28%);
+  border-radius: 50%;
+}
+
+.is-connected .lightweb2-status-mark {
+  background: #48c78e;
+}
+
+.lightweb2-stat strong {
+  margin-inline-end: 4px;
+  color: #fff;
+  font-size: 15px;
+}
+
+.lightweb2-header .lightweb2-version {
+  color: #b9c8ed;
+  border-color: #344879;
+}
+
+.lightweb2-local-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 18px;
+  padding: 6px;
+  overflow-x: auto;
+  background: #fff;
+  border: 1px solid var(--lightweb2-line);
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgb(20 32 51 / 4%);
+}
+
+.lightweb2-local-nav a {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 13px;
+  color: var(--lightweb2-ink-soft);
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.lightweb2-local-nav a:hover,
+.lightweb2-local-nav a:focus-visible,
+.lightweb2-local-nav a.is-active {
+  color: var(--lightweb2-blue-dark);
+  background: #edf3ff;
+}
+
+.lightweb2-local-nav .dashicons {
+  width: 17px;
+  height: 17px;
+  font-size: 17px;
+}
+
+.lightweb2-card {
+  border-radius: 14px;
+  box-shadow: 0 5px 18px rgb(20 32 51 / 5%);
+}
+
+.lightweb2-card h2 {
+  font-size: 19px;
+}
+
+.lightweb2-eyebrow {
+  margin: 0 0 6px;
+  color: var(--lightweb2-blue-dark);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.lightweb2-section-heading {
+  align-items: center;
+}
+
+.lightweb2-heading-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lightweb2-refresh {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 5px;
+  min-height: 36px;
+}
+
+.lightweb2-refresh .dashicons,
+.lightweb2-manual-publish .dashicons,
+.lightweb2-bulk-publish .dashicons {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+}
+
+.lightweb2-bulk-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 10px 12px;
+  background: #f6f8fc;
+  border: 1px solid var(--lightweb2-line);
+  border-radius: 8px;
+}
+
+.lightweb2-check-label,
+.lightweb2-post-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  color: var(--lightweb2-ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.lightweb2-check-label input,
+.lightweb2-post-check input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.lightweb2-bulk-publish {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 5px;
+  min-height: 38px;
+}
+
+.lightweb2-post-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  margin-top: 12px;
+  border-top: 1px solid var(--lightweb2-line);
+}
+
+.lightweb2-post-row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) minmax(110px, 0.32fr) minmax(115px, 0.3fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--lightweb2-line);
+}
+
+.lightweb2-post-row.is-queued {
+  background: #f2fbf6;
+}
+
+.lightweb2-post-copy strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lightweb2-post-copy small,
+.lightweb2-post-row time {
+  color: var(--lightweb2-ink-soft);
+  font-size: 11px;
+}
+
+.lightweb2-category-badge {
+  width: fit-content;
+  max-width: 100%;
+  padding: 5px 8px;
+  overflow: hidden;
+  color: var(--lightweb2-blue-dark);
+  background: #edf3ff;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lightweb2-manual-publish {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 112px;
+  min-height: 38px;
+}
+
+.lightweb2-side-rail {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+}
+
+.lightweb2-card--connection,
+.lightweb2-card--channels,
+.lightweb2-card--publishing,
+.lightweb2-card--filtering,
+.lightweb2-card--tools {
+  grid-column: auto;
+  grid-row: auto;
+}
+
+.lightweb2-card-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.lightweb2-card-title h2 {
+  margin-bottom: 3px;
+}
+
+.lightweb2-card-title .description {
+  margin: 0;
+  font-size: 12px;
+}
+
+.lightweb2-icon-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  color: var(--lightweb2-blue-dark);
+  background: #edf3ff;
+  border-radius: 8px;
+}
+
+.lightweb2-card--connection .regular-text {
+  width: 100%;
+}
+
+.lightweb2-channels {
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.lightweb2-channel-group {
+  display: grid;
+  gap: 8px;
+}
+
+.lightweb2-channel {
+  min-height: 48px;
+  padding: 6px 9px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.lightweb2-channel-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  color: #fff;
+  background: #17223d;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.lightweb2-channel-mark.is-facebook { background: #1877f2; }
+.lightweb2-channel-mark.is-twitter { background: #111; }
+.lightweb2-channel-mark.is-linkedin { background: #0a66c2; }
+
+.lightweb2-channel-name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lightweb2-card--publishing select {
+  width: 100%;
+  min-height: 40px;
+}
+
+.lightweb2-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-inline-start: 6px;
+  color: var(--lightweb2-blue-dark);
+  background: #edf3ff;
+  border-radius: 50%;
+  font-size: 10px;
+  vertical-align: 2px;
+}
+
+.lightweb2-card--publishing textarea {
+  width: 100%;
+  min-height: 150px;
+  resize: vertical;
+}
+
+.lightweb2-variable-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.lightweb2-variable-button {
+  min-height: 32px;
+  padding: 0 9px;
+  color: var(--lightweb2-blue-dark) !important;
+  background: #edf3ff !important;
+  border-color: #c8d7fb !important;
+  border-radius: 6px !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px !important;
+}
+
+.lightweb2-preview {
+  min-height: 150px;
+  margin-top: 8px;
+  color: #eef4ff;
+  background: #17223d;
+  border-radius: 8px;
+}
+
+.lightweb2-utility-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  grid-column: 1 / -1;
+  padding: 16px 20px;
+  background: #fff;
+  border: 1px solid var(--lightweb2-line);
+  border-radius: 12px;
+  box-shadow: 0 5px 18px rgb(20 32 51 / 5%);
+}
+
+.lightweb2-utility-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.lightweb2-utility-item > .dashicons {
+  color: var(--lightweb2-blue-dark);
+}
+
+.lightweb2-utility-item label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--lightweb2-ink-soft);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.lightweb2-utility-item select {
+  min-width: 180px;
+}
+
+.lightweb2-save-wrap {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.lightweb2-save-wrap .submit {
+  margin: 0;
+  padding: 0;
+}
+
+.lightweb2-save-wrap .button {
+  min-height: 42px;
+  padding-inline: 20px;
+}
+
+.lightweb2-empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  padding: 38px 20px 22px;
+  color: var(--lightweb2-ink-soft);
+  text-align: center;
+}
+
+.lightweb2-empty-state .dashicons {
+  width: 28px;
+  height: 28px;
+  color: var(--lightweb2-blue);
+  font-size: 28px;
+}
+
+.lightweb2-empty-state p {
+  margin: 0;
+}
+
+.lightweb2-card input:focus-visible,
+.lightweb2-card select:focus-visible,
+.lightweb2-card textarea:focus-visible,
+.lightweb2-card button:focus-visible,
+.lightweb2-local-nav a:focus-visible {
+  outline: 3px solid rgb(36 87 214 / 35%);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+@media (min-width: 961px) {
+  .lightweb2-form {
+    grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.75fr);
+  }
+
+  .lightweb2-card--connection,
+  .lightweb2-card--channels {
+    grid-column: 2;
+  }
+
+  .lightweb2-card--connection { grid-row: 1; }
+  .lightweb2-card--channels { grid-row: 2; }
+  .lightweb2-card--publishing { grid-column: 1 / -1; grid-row: 3; }
+  .lightweb2-card--filtering { grid-column: 1; grid-row: 4; }
+  .lightweb2-card--tools { grid-column: 2; grid-row: 4; }
+  .lightweb2-form > .submit { grid-column: 1 / -1; grid-row: 5; }
+}
+
+@media (max-width: 960px) {
+  .lightweb2-header-meta {
+    min-width: 0;
+  }
+
+  .lightweb2-utility-bar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .lightweb2-save-wrap {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 680px) {
+  .lightweb2-wrap {
+    padding-inline: 0;
+  }
+
+  .lightweb2-header {
+    align-items: flex-start;
+    gap: 22px;
+    padding: 24px 20px;
+  }
+
+  .lightweb2-header-meta {
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .lightweb2-header-stats {
+    justify-content: flex-start;
+  }
+
+  .lightweb2-post-row {
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .lightweb2-post-row .lightweb2-category-badge,
+  .lightweb2-post-row time {
+    display: none;
+  }
+
+  .lightweb2-manual-publish {
+    min-width: 40px;
+    padding-inline: 7px;
+    font-size: 0;
+  }
+
+  .lightweb2-manual-publish .dashicons {
+    margin: 0;
+  }
+
+  .lightweb2-utility-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .lightweb2-save-wrap {
+    grid-column: auto;
+  }
+
+  .lightweb2-bulk-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .lightweb2-bulk-publish {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.lightweb2-form > .lightweb2-utility-bar {
+  grid-column: 1 / -1;
+  grid-row: auto;
+}
+
+.lightweb2-utility-bar > .lightweb2-card {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.lightweb2-utility-bar > .lightweb2-card h2 {
+  margin: 0 0 5px;
+  font-size: 12px;
+}
+
+.lightweb2-utility-bar > .lightweb2-card .lightweb2-label {
+  margin: 0 0 5px;
+  font-size: 11px;
+}
+
+.lightweb2-utility-bar > .lightweb2-card--filtering,
+.lightweb2-utility-bar > .lightweb2-card--tools,
+.lightweb2-utility-bar > .submit {
+  grid-column: auto;
+  grid-row: auto;
+}
+
+.lightweb2-utility-bar > .lightweb2-card--filtering select {
+  width: 100%;
+  min-height: 38px;
+}
+
+.lightweb2-utility-bar > .lightweb2-card--tools input {
+  min-height: 38px;
+}
+
+.lightweb2-utility-bar > .submit {
+  margin: 0;
+  padding: 0;
+}
+
+.lightweb2-utility-bar > .submit .button {
+  min-height: 42px;
+  padding-inline: 18px;
+}
+
+@media (max-width: 680px) {
+  .lightweb2-form > .lightweb2-utility-bar {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
