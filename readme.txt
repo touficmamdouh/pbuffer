@@ -4,7 +4,7 @@ Tags: buffer, social media, auto publish, graphql, scheduling
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.5
+Stable tag: 1.0.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -57,7 +57,7 @@ Each channel has its own delivery record. A failed channel is retried without re
 
 = Why is my delivery still pending? =
 
-The plugin triggers WP-Cron after scheduling a delivery so queue mode can start promptly. A real system cron job is still recommended for retries and cleanup on low-traffic sites.
+Queue mode dispatches the first delivery immediately and keeps WP-Cron as a safety net. A real system cron job is still recommended for retries and cleanup on low-traffic sites.
 
 = Does the plugin use OAuth? =
 
@@ -90,6 +90,13 @@ Developer documentation: https://developers.buffer.com
 The Buffer API key is stored in your WordPress database and is never sent to LightWeb2 servers. The plugin performs no analytics or tracking.
 
 == Changelog ==
+
+= 1.0.7 =
+* Dispatches the first queued delivery immediately when WP-Cron cannot start it.
+* Keeps WP-Cron as a fallback for interrupted requests and future retries.
+
+= 1.0.6 =
+* Triggers WP-Cron immediately after scheduling a delivery.
 
 = 1.0.5 =
 * Added manual publishing for the latest 20 published posts.
