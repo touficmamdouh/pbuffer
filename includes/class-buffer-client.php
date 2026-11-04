@@ -126,7 +126,8 @@ final class Buffer_Client {
 	 * @return array
 	 */
 	private function request( string $token, string $query, array $variables = array() ): array {
-		$response = wp_safe_remote_post(
+		$variables_payload = empty( $variables ) ? new \stdClass() : $variables;
+		$response          = wp_safe_remote_post(
 			self::ENDPOINT,
 			array(
 				'headers'     => array(
@@ -136,7 +137,7 @@ final class Buffer_Client {
 				'body'        => wp_json_encode(
 					array(
 						'query'     => $query,
-						'variables' => $variables,
+						'variables' => $variables_payload,
 					)
 				),
 				'data_format' => 'body',

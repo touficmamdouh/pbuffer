@@ -67,6 +67,9 @@ final class Test_Buffer_Client extends WP_UnitTestCase {
         $this->assertTrue( $result['success'] );
         $this->assertSame( 'Acme', $result['data']['account']['name'] );
         $this->assertSame( 'Bearer test-token', $captured['headers']['Authorization'] );
+
+        $payload = json_decode( $captured['body'] );
+        $this->assertInstanceOf( stdClass::class, $payload->variables );
     }
 
     public function test_unauthorized_is_not_retryable(): void {
