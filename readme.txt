@@ -4,7 +4,7 @@ Tags: buffer, social media, auto publish, graphql, scheduling
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.14
+Stable tag: 1.0.15
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -31,7 +31,6 @@ Choose your channels once, enable Buffer on a post, and publish. The plugin sche
 * Automatic retries for temporary failures.
 * Activity log with manual retry.
 * Translation-ready with RTL support.
-* Automatic updates from LightWeb2 GitHub Releases.
 
 == Installation ==
 
@@ -95,7 +94,7 @@ The Buffer API key is stored in your WordPress database and is never sent to Lig
 = 1.0.14 =
 * Refined the admin workspace into a two-column desktop dashboard with a compact article list and side controls.
 * Moved the message editor and live preview below the dashboard with responsive mobile behavior.
-* Preserved existing Buffer publishing, settings, AJAX, and update functionality.
+* Preserved existing Buffer publishing, settings, AJAX, and security functionality.
 
 = 1.0.13 =
 * Redesigned the admin workspace with a responsive RTL-friendly dashboard layout.
@@ -117,7 +116,7 @@ The Buffer API key is stored in your WordPress database and is never sent to Lig
 * Tightened Twitter message length to stay safely below the platform limit.
 
 = 1.0.8 =
-* Added automatic update checks from the LightWeb2 GitHub Releases repository.
+* Published the initial GitHub release package for manual installation.
 
 = 1.0.7 =
 * Dispatches the first queued delivery immediately when WP-Cron cannot start it.

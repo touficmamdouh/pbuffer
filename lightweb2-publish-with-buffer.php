@@ -2,7 +2,7 @@
 /**
  * Plugin Name: LightWeb2 Publish with Buffer
  * Description: Publish WordPress posts to Buffer channels.
- * Version: 1.0.14
+ * Version: 1.0.15
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Author: LightWeb2
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'LIGHTWEB2_VERSION', '1.0.14' );
+define( 'LIGHTWEB2_VERSION', '1.0.15' );
 define( 'LIGHTWEB2_FILE', __FILE__ );
 define( 'LIGHTWEB2_DIR', plugin_dir_path( __FILE__ ) );
 define( 'LIGHTWEB2_URL', plugin_dir_url( __FILE__ ) );
@@ -32,7 +32,6 @@ require_once LIGHTWEB2_DIR . 'includes/class-buffer-client.php';
 require_once LIGHTWEB2_DIR . 'includes/class-message-builder.php';
 require_once LIGHTWEB2_DIR . 'includes/class-publisher.php';
 require_once LIGHTWEB2_DIR . 'includes/class-statuses.php';
-require_once LIGHTWEB2_DIR . 'includes/class-updater.php';
 require_once LIGHTWEB2_DIR . 'includes/class-admin.php';
 require_once LIGHTWEB2_DIR . 'includes/class-plugin.php';
 
