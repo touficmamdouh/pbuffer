@@ -180,6 +180,7 @@ final class Publisher {
 
 				// Dispatch now so Queue mode does not depend solely on a working loopback cron.
 				if ( apply_filters( 'lightweb2_dispatch_immediately', true, $post_id, (string) $channel['id'] ) ) {
+					spawn_cron( time() );
 					$this->deliver( $post_id, (string) $channel['id'], (int) $row['attempts'] + 1 );
 				}
 				wp_clear_scheduled_hook(
@@ -420,7 +421,6 @@ final class Publisher {
 		$args = array( $post_id, $channel_id, $attempt );
 
 		if ( false !== wp_next_scheduled( 'lightweb2_deliver_channel', $args ) ) {
-			spawn_cron( time() );
 			return true;
 		}
 
@@ -429,11 +429,6 @@ final class Publisher {
 			'lightweb2_deliver_channel',
 			$args
 		);
-
-		if ( $scheduled ) {
-			// Start the runner immediately; otherwise low-traffic sites wait for a later request.
-			spawn_cron( time() );
-		}
 
 		return $scheduled;
 	}
