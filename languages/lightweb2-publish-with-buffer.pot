@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-11-04T15:13:11+00:00\n"
+"POT-Creation-Date: 2026-11-04T15:16:45+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: lightweb2-publish-with-buffer\n"
@@ -28,21 +28,19 @@ msgstr ""
 #: lightweb2-publish-with-buffer.php
 #: includes/class-admin.php:88
 #: includes/class-admin.php:89
-#: includes/class-admin.php:381
-#: includes/class-admin.php:562
 #: includes/class-meta-box.php:60
 msgid "LightWeb2"
 msgstr ""
 
 #: includes/class-admin.php:99
 #: includes/class-admin.php:100
-#: includes/class-admin.php:382
+#: includes/class-admin.php:384
 msgid "Publish with Buffer"
 msgstr ""
 
 #: includes/class-admin.php:108
 #: includes/class-admin.php:109
-#: includes/class-admin.php:563
+#: includes/class-admin.php:569
 msgid "Activity"
 msgstr ""
 
@@ -93,198 +91,214 @@ msgstr ""
 msgid "Add a Buffer token first."
 msgstr ""
 
-#: includes/class-admin.php:383
+#: includes/class-admin.php:385
 msgid "Connect Buffer, choose your channels, and share WordPress posts without the busywork."
 msgstr ""
 
-#: includes/class-admin.php:393
+#: includes/class-admin.php:395
 msgid "Publish an article"
 msgstr ""
 
-#: includes/class-admin.php:394
+#: includes/class-admin.php:396
 msgid "Choose one of your latest published articles and send it to the selected Buffer channels."
 msgstr ""
 
-#: includes/class-admin.php:399
+#: includes/class-admin.php:401
 msgid "No published articles found yet."
 msgstr ""
 
-#: includes/class-admin.php:406
+#: includes/class-admin.php:408
 msgid "(Untitled)"
 msgstr ""
 
-#: includes/class-admin.php:410
+#: includes/class-admin.php:412
 msgid "Publish"
 msgstr ""
 
-#: includes/class-admin.php:422
+#: includes/class-admin.php:424
 msgid "Connection"
 msgstr ""
 
-#: includes/class-admin.php:423
+#: includes/class-admin.php:425
 msgid "Create a personal API key in Buffer, then paste it here."
 msgstr ""
 
-#: includes/class-admin.php:424
+#: includes/class-admin.php:426
 msgid "Buffer API Token"
 msgstr ""
 
-#: includes/class-admin.php:437
+#: includes/class-admin.php:439
 msgid "Token is set. Enter a new one to replace it."
 msgstr ""
 
-#: includes/class-admin.php:438
+#: includes/class-admin.php:440
 msgid "Not connected yet."
 msgstr ""
 
-#: includes/class-admin.php:442
+#: includes/class-admin.php:444
 msgid "Test connection"
 msgstr ""
 
-#: includes/class-admin.php:443
+#: includes/class-admin.php:445
 msgid "Load channels"
 msgstr ""
 
-#: includes/class-admin.php:444
+#: includes/class-admin.php:446
 msgid "Disconnect"
 msgstr ""
 
-#: includes/class-admin.php:450
+#: includes/class-admin.php:452
 msgid "Channels"
 msgstr ""
 
-#: includes/class-admin.php:454
+#: includes/class-admin.php:456
 msgid "No channels selected. Save your token, then load channels."
 msgstr ""
 
-#: includes/class-admin.php:473
+#: includes/class-admin.php:475
 msgid "Publishing defaults"
 msgstr ""
 
-#: includes/class-admin.php:474
+#: includes/class-admin.php:476
 msgid "Default mode"
 msgstr ""
 
-#: includes/class-admin.php:476
+#: includes/class-admin.php:478
 #: includes/class-meta-box.php:104
 msgid "Add to Queue"
 msgstr ""
 
-#: includes/class-admin.php:477
+#: includes/class-admin.php:479
 #: includes/class-meta-box.php:105
 msgid "Share Now"
 msgstr ""
 
-#: includes/class-admin.php:480
+#: includes/class-admin.php:482
 msgid "Message template"
 msgstr ""
 
-#: includes/class-admin.php:483
+#: includes/class-admin.php:485
 msgid "Variables:"
 msgstr ""
 
-#: includes/class-admin.php:487
+#: includes/class-admin.php:489
 msgid "Preview"
 msgstr ""
 
-#: includes/class-admin.php:492
+#: includes/class-admin.php:494
 msgid "Filtering"
 msgstr ""
 
-#: includes/class-admin.php:493
+#: includes/class-admin.php:495
 msgid "Category filter"
 msgstr ""
 
-#: includes/class-admin.php:497
+#: includes/class-admin.php:499
 msgid "All categories"
 msgstr ""
 
-#: includes/class-admin.php:509
+#: includes/class-admin.php:511
 msgid "Tools"
 msgstr ""
 
-#: includes/class-admin.php:510
+#: includes/class-admin.php:512
 msgid "Keep delivery history for"
 msgstr ""
 
-#: includes/class-admin.php:512
+#: includes/class-admin.php:514
 msgid "days"
 msgstr ""
 
-#: includes/class-admin.php:515
+#: includes/class-admin.php:517
 msgid "Save Settings"
 msgstr ""
 
-#: includes/class-admin.php:564
+#: includes/class-admin.php:570
 msgid "Every Buffer delivery attempt, with the reason it failed and a safe retry action."
 msgstr ""
 
-#: includes/class-admin.php:566
+#: includes/class-admin.php:572
 msgid "Clear history"
 msgstr ""
 
-#: includes/class-admin.php:572
-#: includes/class-admin.php:607
+#: includes/class-admin.php:578
+#: includes/class-admin.php:613
 msgid "Status"
 msgstr ""
 
-#: includes/class-admin.php:574
+#: includes/class-admin.php:580
 msgid "All statuses"
 msgstr ""
 
-#: includes/class-admin.php:581
+#: includes/class-admin.php:587
 msgid "Channel ID"
 msgstr ""
 
-#: includes/class-admin.php:585
+#: includes/class-admin.php:591
 msgid "From"
 msgstr ""
 
-#: includes/class-admin.php:589
+#: includes/class-admin.php:595
 msgid "To"
 msgstr ""
 
-#: includes/class-admin.php:592
+#: includes/class-admin.php:598
 msgid "Filter"
 msgstr ""
 
-#: includes/class-admin.php:597
+#: includes/class-admin.php:603
 msgid "No deliveries yet. Publish a post with Buffer enabled to see activity here."
 msgstr ""
 
-#: includes/class-admin.php:603
+#: includes/class-admin.php:609
 msgid "Date"
 msgstr ""
 
-#: includes/class-admin.php:604
+#: includes/class-admin.php:610
 msgid "Post"
 msgstr ""
 
-#: includes/class-admin.php:605
+#: includes/class-admin.php:611
 msgid "Channel"
 msgstr ""
 
-#: includes/class-admin.php:606
+#: includes/class-admin.php:612
 msgid "Mode"
 msgstr ""
 
-#: includes/class-admin.php:608
+#: includes/class-admin.php:614
 msgid "Attempts"
 msgstr ""
 
-#: includes/class-admin.php:609
+#: includes/class-admin.php:615
 msgid "Details"
 msgstr ""
 
-#: includes/class-admin.php:610
+#: includes/class-admin.php:616
 msgid "Action"
 msgstr ""
 
-#: includes/class-admin.php:642
+#: includes/class-admin.php:648
 msgid "Retry"
 msgstr ""
 
-#: includes/class-admin.php:690
+#: includes/class-admin.php:691
+msgid "All rights reserved."
+msgstr ""
+
+#: includes/class-admin.php:693
+msgid "For support:"
+msgstr ""
+
+#: includes/class-admin.php:693
+msgid "Contact LightWeb2"
+msgstr ""
+
+#: includes/class-admin.php:695
+msgid "lightweb2.com"
+msgstr ""
+
+#: includes/class-admin.php:715
 msgid "This delivery cannot be retried."
 msgstr ""
 

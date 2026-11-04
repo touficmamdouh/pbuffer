@@ -378,7 +378,9 @@ final class Admin {
 		<div class="wrap lightweb2-wrap">
 			<header class="lightweb2-header">
 				<div>
-					<p class="lightweb2-eyebrow"><?php esc_html_e( 'LightWeb2', 'lightweb2-publish-with-buffer' ); ?></p>
+					<a class="lightweb2-brand" href="https://lightweb2.com/" target="_blank" rel="noopener noreferrer">
+						<img src="<?php echo esc_url( LIGHTWEB2_URL . 'assets/lightweb2-logo.png' ); ?>" alt="LightWeb2" />
+					</a>
 					<h1><?php esc_html_e( 'Publish with Buffer', 'lightweb2-publish-with-buffer' ); ?></h1>
 					<p class="lightweb2-lede"><?php esc_html_e( 'Connect Buffer, choose your channels, and share WordPress posts without the busywork.', 'lightweb2-publish-with-buffer' ); ?></p>
 				</div>
@@ -514,6 +516,8 @@ final class Admin {
 
 				<?php submit_button( __( 'Save Settings', 'lightweb2-publish-with-buffer' ) ); ?>
 			</form>
+
+			<?php $this->render_brand_footer(); ?>
 		</div>
 		<?php
 	}
@@ -559,7 +563,9 @@ final class Admin {
 		<div class="wrap lightweb2-wrap">
 			<header class="lightweb2-header">
 				<div>
-					<p class="lightweb2-eyebrow"><?php esc_html_e( 'LightWeb2', 'lightweb2-publish-with-buffer' ); ?></p>
+					<a class="lightweb2-brand" href="https://lightweb2.com/" target="_blank" rel="noopener noreferrer">
+						<img src="<?php echo esc_url( LIGHTWEB2_URL . 'assets/lightweb2-logo.png' ); ?>" alt="LightWeb2" />
+					</a>
 					<h1><?php esc_html_e( 'Activity', 'lightweb2-publish-with-buffer' ); ?></h1>
 					<p class="lightweb2-lede"><?php esc_html_e( 'Every Buffer delivery attempt, with the reason it failed and a safe retry action.', 'lightweb2-publish-with-buffer' ); ?></p>
 				</div>
@@ -668,7 +674,26 @@ final class Admin {
 				<?php endif; ?>
 			</div>
 			<p class="lightweb2-ajax-status" id="lightweb2-ajax-status" role="status" aria-live="polite"></p>
+			<?php $this->render_brand_footer(); ?>
 		</div>
+		<?php
+	}
+
+	/**
+	 * Render the LightWeb2 ownership and support footer.
+	 *
+	 * @return void
+	 */
+	private function render_brand_footer(): void {
+		?>
+		<footer class="lightweb2-footer">
+			<p>
+				<span>LightWeb2. <?php esc_html_e( 'All rights reserved.', 'lightweb2-publish-with-buffer' ); ?></span>
+				<span class="lightweb2-footer-separator" aria-hidden="true">·</span>
+				<span><?php esc_html_e( 'For support:', 'lightweb2-publish-with-buffer' ); ?> <a href="https://lightweb2.com/contact/" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Contact LightWeb2', 'lightweb2-publish-with-buffer' ); ?></a></span>
+			</p>
+			<a class="lightweb2-footer-site" href="https://lightweb2.com/" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'lightweb2.com', 'lightweb2-publish-with-buffer' ); ?></a>
+		</footer>
 		<?php
 	}
 

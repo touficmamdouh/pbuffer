@@ -38,6 +38,21 @@
   line-height: 1.1;
 }
 
+.lightweb2-brand {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 5px 9px;
+  background: #fff;
+  border-radius: 7px;
+}
+
+.lightweb2-brand img {
+  display: block;
+  width: 148px;
+  height: auto;
+}
+
 .lightweb2-eyebrow {
   margin: 0 0 10px;
   color: var(--lightweb2-mint);
@@ -498,6 +513,45 @@
   min-width: 132px;
 }
 
+.lightweb2-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 28px 0 18px;
+  padding: 18px 2px 0;
+  color: var(--lightweb2-ink-soft);
+  border-top: 1px solid var(--lightweb2-line);
+  font-size: 12px;
+}
+
+.lightweb2-footer p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+
+.lightweb2-footer a {
+  color: var(--lightweb2-blue-dark);
+  text-decoration: none;
+}
+
+.lightweb2-footer a:hover,
+.lightweb2-footer a:focus {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.lightweb2-footer-separator {
+  color: var(--lightweb2-line-strong);
+}
+
+.lightweb2-footer-site {
+  flex: 0 0 auto;
+  font-weight: 600;
+}
+
 @media (max-width: 960px) {
   .lightweb2-form {
     grid-template-columns: 1fr;
@@ -525,6 +579,11 @@
 
   .lightweb2-header h1 {
     font-size: 27px;
+  }
+
+  .lightweb2-footer {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .lightweb2-card {
