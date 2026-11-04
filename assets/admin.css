@@ -125,6 +125,8 @@
 
 .lightweb2-post-list {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 24px;
   margin-top: 18px;
   border-top: 1px solid var(--lightweb2-line);
 }
@@ -134,6 +136,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  min-width: 0;
+  min-height: 58px;
   padding: 12px 0;
   border-bottom: 1px solid var(--lightweb2-line);
 }
@@ -161,9 +165,12 @@
 .lightweb2-manual-publish {
   flex: 0 0 auto;
   min-width: 82px;
+  min-height: 34px;
+  padding: 0 11px;
   border-color: var(--lightweb2-blue);
   color: var(--lightweb2-blue-dark);
   font-weight: 600;
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
 }
 
 .lightweb2-manual-publish:hover,
@@ -171,6 +178,17 @@
   color: #fff;
   background: var(--lightweb2-blue);
   border-color: var(--lightweb2-blue);
+}
+
+.lightweb2-manual-publish.is-queued {
+  color: var(--lightweb2-success);
+  background: #dff6ea;
+  border-color: #a9dec6;
+}
+
+.lightweb2-manual-publish[aria-busy="true"] {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 .lightweb2-card--connection,
@@ -553,6 +571,10 @@
 }
 
 @media (max-width: 960px) {
+  .lightweb2-post-list {
+    grid-template-columns: 1fr;
+  }
+
   .lightweb2-form {
     grid-template-columns: 1fr;
   }

@@ -141,6 +141,7 @@
   document.querySelectorAll('.lightweb2-manual-publish').forEach((button) => {
     button.addEventListener('click', async () => {
       button.disabled = true;
+      button.setAttribute('aria-busy', 'true');
       setAjaxStatus(cfg.strings.manualPublishing);
 
       try {
@@ -149,8 +150,11 @@
         });
         setAjaxStatus(data.message || '');
         button.textContent = cfg.strings.manualQueued;
+        button.classList.add('is-queued');
+        button.removeAttribute('aria-busy');
       } catch (error) {
         button.disabled = false;
+        button.removeAttribute('aria-busy');
         setAjaxStatus(error.message, true);
       }
     });
