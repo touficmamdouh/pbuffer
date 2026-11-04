@@ -120,7 +120,7 @@ final class Message_Builder {
 				return $message;
 			}
 
-			return $this->truncate_utf16( $prefix, 256 ) . "…\n" . $url;
+			return $this->truncate_utf16( $prefix, 254 ) . "…\n" . $url;
 		}
 
 		return $this->truncate_utf16( $message, 279 ) . '…';

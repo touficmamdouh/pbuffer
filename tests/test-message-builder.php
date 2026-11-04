@@ -168,7 +168,7 @@ final class Test_Message_Builder extends WP_UnitTestCase {
 
         $message = $this->builder->build_for_service( $post_id, '{title}\n{excerpt}\n{url}', 'twitter' );
 
-        $this->assertLessThanOrEqual( 280, (int) ( strlen( mb_convert_encoding( $message, 'UTF-16LE', 'UTF-8' ) ) / 2 ) );
+        $this->assertLessThanOrEqual( 279, (int) ( strlen( mb_convert_encoding( $message, 'UTF-16LE', 'UTF-8' ) ) / 2 ) );
         $this->assertStringContainsString( get_permalink( $post_id ), $message );
     }
 }
