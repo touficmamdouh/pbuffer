@@ -3848,7 +3848,11 @@ final class Publisher {
             return;
         }
 
-        if ( $post_before instanceof \WP_Post && 'publish' === $post_before->post_status ) {
+        if (
+            $post_before instanceof \WP_Post
+            && 'publish' === $post_before->post_status
+            && ! empty( $this->deliveries->get_for_post( $post_id ) )
+        ) {
             return;
         }
 
@@ -4246,6 +4250,8 @@ Add these focused tests before running the full suite:
 - `Test_Publisher`: `recover_stale()` does not overwrite a row that became `sent` after the stale query.
 - `Test_Publisher`: `maybe_publish()` does not schedule dead events for `canceled` rows.
 - `Test_Publisher`: `maybe_publish()` does not schedule a fifth attempt for a row already at four attempts.
+- `Test_Publisher`: simulate the block-editor order: publish with enabled=no and no rows, then save enabled=yes and fire `wp_after_insert_post` with `post_before` already `publish`; assert a delivery is created.
+- `Test_Publisher`: a published post that already has delivery rows is not re-enqueued by an ordinary update.
 
 Expected: all focused tests pass, including the existing happy-path tests.
 

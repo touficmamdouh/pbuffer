@@ -234,11 +234,13 @@ Disconnect is a separate nonce-protected admin action. It clears the token, sele
 
 ### Publish Flow
 
-The plugin listens to `wp_after_insert_post`, not `save_post`, so meta box values are already saved when publishing is evaluated.
+The plugin listens to `wp_after_insert_post`, not `save_post`, so meta box values are saved before the publish evaluation when the editor saves them in the same request.
+
+The block editor publishes through REST before the classic meta box form is saved. That produces a second `wp_after_insert_post` call from the meta-box-loader request, with the post already published. The publisher therefore allows a published post when it has no delivery rows, even if `post_before` was already `publish`. Once any row exists, ordinary updates do not enqueue again.
 
 ```text
-post published
-  -> confirm transition from non-publish to publish
+post inserted or updated as publish
+  -> if post_before was publish AND delivery rows already exist, stop
   -> confirm _lightweb2_enabled = yes
   -> confirm token and selected channels exist
   -> confirm category filter matches
@@ -469,6 +471,7 @@ Use PHPUnit with the WordPress test suite. HTTP calls are replaced through the `
 | Buffer client | Successful account query, successful channel query, successful post, `401`, `403`, `429`, `5xx`, GraphQL errors, malformed payload |
 | Message builder | All variables, excerpt fallback, HTML entity decoding, tags to hashtags including Unicode, missing values, featured image |
 | Publisher | Publish transition creates deliveries, category mismatch skips, disabled post skips, sent channel is skipped, temporary failure schedules retry, permanent failure does not retry, max attempts respected, unpublished post cancels |
+| Editor save order | Block-editor order (REST publish with enabled=no, then meta-box-loader save with enabled=yes and `post_before=publish`, no rows) creates a delivery; ordinary updates with existing rows do not |
 | Deliveries | Unique key prevents duplicates, atomic claim prevents concurrent work, stale events are rejected, status transitions, attempt increments, retention cleanup |
 | Concurrency | Two workers cannot both claim one delivery; a stale or duplicate event makes no Buffer call; a claimed row is recovered after the stale timeout |
 | Retry limits | 401/typed mutation errors do not retry, four failed attempts schedule no fifth automatic event, manual retry resets the attempt cycle |
