@@ -416,7 +416,7 @@ final class Publisher {
 		int $post_id,
 		string $channel_id,
 		int $attempt,
-		int $delay = 0
+		int $delay = 1
 	): bool {
 		$args = array( $post_id, $channel_id, $attempt );
 
