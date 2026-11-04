@@ -57,7 +57,7 @@ Each channel has its own delivery record. A failed channel is retried without re
 
 = Why is my delivery still pending? =
 
-WP-Cron depends on site traffic or a system cron job. Configure a real cron job on low-traffic sites.
+The plugin triggers WP-Cron after scheduling a delivery so queue mode can start promptly. A real system cron job is still recommended for retries and cleanup on low-traffic sites.
 
 = Does the plugin use OAuth? =
 

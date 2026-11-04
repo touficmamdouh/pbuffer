@@ -406,18 +406,26 @@ final class Publisher {
 		int $post_id,
 		string $channel_id,
 		int $attempt,
-		int $delay = 1
+		int $delay = 0
 	): bool {
 		$args = array( $post_id, $channel_id, $attempt );
 
 		if ( false !== wp_next_scheduled( 'lightweb2_deliver_channel', $args ) ) {
+			spawn_cron( time() );
 			return true;
 		}
 
-		return (bool) wp_schedule_single_event(
-			time() + max( 1, $delay ),
+		$scheduled = (bool) wp_schedule_single_event(
+			time() + max( 0, $delay ),
 			'lightweb2_deliver_channel',
 			$args
 		);
+
+		if ( $scheduled ) {
+			// Start the runner immediately; otherwise low-traffic sites wait for a later request.
+			spawn_cron( time() );
+		}
+
+		return $scheduled;
 	}
 }
