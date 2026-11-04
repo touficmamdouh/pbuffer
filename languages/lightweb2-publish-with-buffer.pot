@@ -3,13 +3,13 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: LightWeb2 Publish with Buffer 1.0.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/light-publish-with-buffer\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/lightweb2-publish-with-buffer\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-11-03T23:44:29+00:00\n"
+"POT-Creation-Date: 2026-11-04T00:38:58+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.12.0\n"
 "X-Domain: lightweb2-publish-with-buffer\n"
@@ -73,7 +73,7 @@ msgid "Disconnect Buffer and clear the selected channels?"
 msgstr ""
 
 #: includes/class-admin.php:174
-msgid "Delete all delivery history? This cannot be undone."
+msgid "Delete all delivery history? This cannot be undone. Clearing history also removes duplicate protection, so future publishes may be sent to Buffer again."
 msgstr ""
 
 #: includes/class-admin.php:190
@@ -319,23 +319,43 @@ msgstr ""
 msgid "Delivery status"
 msgstr ""
 
-#: includes/class-publisher.php:141
-#: includes/class-publisher.php:197
+#: includes/class-publisher.php:145
+#: includes/class-publisher.php:201
 msgid "The message template produced an empty post."
 msgstr ""
 
-#: includes/class-publisher.php:186
+#: includes/class-publisher.php:190
 msgid "Reconnect Buffer before publishing."
 msgstr ""
 
-#: includes/class-publisher.php:230
+#: includes/class-publisher.php:234
 msgid "Buffer did not return a post ID."
 msgstr ""
 
-#: includes/class-publisher.php:287
+#: includes/class-publisher.php:291
 msgid "Could not schedule the retry."
 msgstr ""
 
 #: includes/class-settings.php:114
 msgid "The Buffer token changed. Load and select your channels again."
+msgstr ""
+
+#: includes/class-statuses.php:26
+msgid "Pending"
+msgstr ""
+
+#: includes/class-statuses.php:28
+msgid "Sending"
+msgstr ""
+
+#: includes/class-statuses.php:30
+msgid "Sent"
+msgstr ""
+
+#: includes/class-statuses.php:32
+msgid "Failed"
+msgstr ""
+
+#: includes/class-statuses.php:34
+msgid "Canceled"
 msgstr ""

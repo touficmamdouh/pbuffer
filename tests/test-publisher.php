@@ -384,6 +384,41 @@ final class Test_Publisher extends WP_UnitTestCase {
         );
     }
 
+    public function test_block_editor_late_meta_save_enqueues_delivery(): void {
+        $post_id = $this->published_post( false );
+        $before  = get_post( $post_id );
+
+        $this->publisher->maybe_publish( $post_id, $before, true, $this->draft_before() );
+        $this->assertCount( 0, $this->deliveries->get_for_post( $post_id ) );
+
+        update_post_meta( $post_id, '_lightweb2_enabled', 'yes' );
+        $this->publisher->maybe_publish( $post_id, get_post( $post_id ), true, $before );
+
+        $rows = $this->deliveries->get_for_post( $post_id );
+        $this->assertCount( 1, $rows );
+        $this->assertSame( 'pending', $rows[0]['status'] );
+        $this->assertNotFalse(
+            wp_next_scheduled( 'lightweb2_deliver_channel', [ $post_id, 'c1', 1 ] )
+        );
+    }
+
+    public function test_published_post_with_existing_rows_is_not_requeued(): void {
+        $post_id = $this->published_post();
+        $this->publisher->maybe_publish( $post_id, get_post( $post_id ), true, $this->draft_before() );
+
+        $before_rows = $this->deliveries->get_for_post( $post_id );
+        $this->assertCount( 1, $before_rows );
+
+        wp_unschedule_hook( 'lightweb2_deliver_channel' );
+
+        $this->publisher->maybe_publish( $post_id, get_post( $post_id ), true, get_post( $post_id ) );
+
+        $this->assertCount( count( $before_rows ), $this->deliveries->get_for_post( $post_id ) );
+        $this->assertFalse(
+            wp_next_scheduled( 'lightweb2_deliver_channel', [ $post_id, 'c1', 1 ] )
+        );
+    }
+
     public function test_recover_stale_marks_failed_and_schedules_next_attempt(): void {
         $post_id = $this->published_post();
         $this->publisher->maybe_publish( $post_id, get_post( $post_id ), true, $this->draft_before() );

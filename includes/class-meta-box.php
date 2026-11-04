@@ -112,7 +112,7 @@ final class Meta_Box {
 				<?php foreach ( $rows as $row ) : ?>
 					<li class="lightweb2-delivery is-<?php echo esc_attr( $row['status'] ); ?>">
 						<span><?php echo esc_html( $row['channel_name'] ? $row['channel_name'] : $row['channel_id'] ); ?></span>
-						<strong><?php echo esc_html( ucfirst( $row['status'] ) ); ?></strong>
+						<strong><?php echo esc_html( Statuses::label( (string) $row['status'] ) ); ?></strong>
 					</li>
 				<?php endforeach; ?>
 			</ul>

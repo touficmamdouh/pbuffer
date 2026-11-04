@@ -30,6 +30,7 @@ require_once LIGHTWEB2_DIR . 'includes/class-meta-box.php';
 require_once LIGHTWEB2_DIR . 'includes/class-buffer-client.php';
 require_once LIGHTWEB2_DIR . 'includes/class-message-builder.php';
 require_once LIGHTWEB2_DIR . 'includes/class-publisher.php';
+require_once LIGHTWEB2_DIR . 'includes/class-statuses.php';
 require_once LIGHTWEB2_DIR . 'includes/class-admin.php';
 require_once LIGHTWEB2_DIR . 'includes/class-plugin.php';
 

@@ -89,13 +89,6 @@ Developer documentation: https://developers.buffer.com
 
 The Buffer API key is stored in your WordPress database and is never sent to LightWeb2 servers. The plugin performs no analytics or tracking.
 
-== Screenshots ==
-
-1. The LightWeb2 connection and channel settings.
-2. The channel picker loaded from Buffer.
-3. The per-post LightWeb2 meta box.
-4. The Activity page with delivery status and retry.
-
 == Changelog ==
 
 = 1.0.0 =

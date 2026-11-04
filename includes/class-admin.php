@@ -171,7 +171,7 @@ final class Admin {
 					'noChannels'        => __( 'No channels found in this Buffer account.', 'lightweb2-publish-with-buffer' ),
 					'error'             => __( 'Could not reach Buffer. Check the token and try again.', 'lightweb2-publish-with-buffer' ),
 					'confirmDisconnect' => __( 'Disconnect Buffer and clear the selected channels?', 'lightweb2-publish-with-buffer' ),
-					'confirmClearLogs'  => __( 'Delete all delivery history? This cannot be undone.', 'lightweb2-publish-with-buffer' ),
+					'confirmClearLogs'  => __( 'Delete all delivery history? This cannot be undone. Clearing history also removes duplicate protection, so future publishes may be sent to Buffer again.', 'lightweb2-publish-with-buffer' ),
 				),
 			)
 		);
@@ -512,7 +512,7 @@ final class Admin {
 					<select name="status">
 						<option value=""><?php esc_html_e( 'All statuses', 'lightweb2-publish-with-buffer' ); ?></option>
 						<?php foreach ( array( 'pending', 'sending', 'sent', 'failed', 'canceled' ) as $option ) : ?>
-							<option value="<?php echo esc_attr( $option ); ?>" <?php selected( $status, $option ); ?>><?php echo esc_html( ucfirst( $option ) ); ?></option>
+							<option value="<?php echo esc_attr( $option ); ?>" <?php selected( $status, $option ); ?>><?php echo esc_html( Statuses::label( $option ) ); ?></option>
 						<?php endforeach; ?>
 					</select>
 				</label>
@@ -565,7 +565,7 @@ final class Admin {
 									</td>
 									<td><?php echo esc_html( $row['channel_name'] ? $row['channel_name'] : $row['channel_id'] ); ?><br /><small><?php echo esc_html( $row['service'] ); ?></small></td>
 									<td><?php echo esc_html( $row['mode'] ); ?></td>
-									<td><span class="lightweb2-badge is-<?php echo esc_attr( $row['status'] ); ?>"><?php echo esc_html( ucfirst( $row['status'] ) ); ?></span></td>
+									<td><span class="lightweb2-badge is-<?php echo esc_attr( $row['status'] ); ?>"><?php echo esc_html( Statuses::label( (string) $row['status'] ) ); ?></span></td>
 									<td><?php echo esc_html( (string) $row['attempts'] ); ?></td>
 									<td>
 										<?php if ( $row['buffer_post_id'] ) : ?>

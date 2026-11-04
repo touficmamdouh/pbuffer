@@ -18,12 +18,16 @@
     <rule ref="PHPCompatibilityWP"/>
     <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
         <properties>
-            <property name="prefixes" type="array" value="lightweb2"/>
+            <property name="prefixes">
+                <element value="lightweb2"/>
+            </property>
         </properties>
     </rule>
     <rule ref="WordPress.WP.I18n">
         <properties>
-            <property name="text_domain" type="array" value="lightweb2-publish-with-buffer"/>
+            <property name="text_domain">
+                <element value="lightweb2-publish-with-buffer"/>
+            </property>
         </properties>
     </rule>
 </ruleset>

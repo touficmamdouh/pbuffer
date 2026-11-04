@@ -97,7 +97,11 @@ final class Publisher {
 			return;
 		}
 
-		if ( $post_before instanceof \WP_Post && 'publish' === $post_before->post_status ) {
+		if (
+			$post_before instanceof \WP_Post
+			&& 'publish' === $post_before->post_status
+			&& ! empty( $this->deliveries->get_for_post( $post_id ) )
+		) {
 			return;
 		}
 

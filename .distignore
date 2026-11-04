@@ -1,4 +1,7 @@
 /.git
+/.agents
+/.aws
+/.codex
 /.github
 /.superpowers
 /tests
@@ -11,7 +14,6 @@
 /composer.json
 /composer.lock
 /phpunit.xml.dist
-/phpcs.xml.dist
 /.phpcs.xml.dist
 /.phpunit.result.cache
 /.distignore
