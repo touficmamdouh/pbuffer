@@ -183,6 +183,51 @@ final class Test_Publisher extends WP_UnitTestCase {
         $this->assertSame( 'buffer-1', $row['buffer_post_id'] );
     }
 
+    public function test_facebook_delivery_includes_default_post_type(): void {
+        update_option(
+            Settings::OPTION,
+            [
+                'token'    => 'test-token',
+                'channels' => [
+                    [ 'id' => 'facebook-1', 'name' => 'Facebook page', 'service' => 'facebook' ],
+                ],
+            ] + Settings::defaults()
+        );
+
+        $post_id = $this->published_post();
+        $this->publisher->maybe_publish( $post_id, get_post( $post_id ), true, $this->draft_before() );
+
+        $captured = array();
+        add_filter(
+            'pre_http_request',
+            static function ( $pre, $args ) use ( &$captured ): array {
+                $captured = json_decode( $args['body'], true );
+
+                return array(
+                    'headers'  => array(),
+                    'body'     => wp_json_encode(
+                        array(
+                            'data' => array(
+                                'createPost' => array(
+                                    'post' => array( 'id' => 'facebook-post-1' ),
+                                ),
+                            ),
+                        )
+                    ),
+                    'response' => array( 'code' => 200, 'message' => 'OK' ),
+                    'cookies'  => array(),
+                    'filename' => null,
+                );
+            },
+            10,
+            2
+        );
+
+        $this->publisher->deliver( $post_id, 'facebook-1', 1 );
+
+        $this->assertSame( 'post', $captured['variables']['input']['metadata']['facebook']['type'] );
+    }
+
     public function test_temporary_failure_schedules_retry(): void {
         $post_id = $this->published_post();
         $this->publisher->maybe_publish( $post_id, get_post( $post_id ), true, $this->draft_before() );

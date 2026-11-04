@@ -192,7 +192,8 @@ final class Publisher {
 			return;
 		}
 
-		$message = $this->builder->build( $post_id, (string) $settings['template'] );
+		$service = strtolower( (string) $row['service'] );
+		$message = $this->builder->build_for_service( $post_id, (string) $settings['template'], $service );
 
 		if ( '' === $message ) {
 			$this->deliveries->mark_failed(
@@ -211,6 +212,14 @@ final class Publisher {
 				? $row['mode']
 				: (string) $settings['default_mode'],
 		);
+
+		if ( 'facebook' === $service ) {
+			$input['metadata'] = array(
+				'facebook' => array(
+					'type' => 'post',
+				),
+			);
+		}
 
 		$image = $this->builder->image_url( $post_id );
 

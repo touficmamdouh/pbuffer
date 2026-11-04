@@ -97,6 +97,71 @@ final class Message_Builder {
 	}
 
 	/**
+	 * Build a message that fits a channel's service limits.
+	 *
+	 * @param int    $post_id  Post ID.
+	 * @param string $template Message template.
+	 * @param string $service  Buffer service slug.
+	 * @return string
+	 */
+	public function build_for_service( int $post_id, string $template, string $service ): string {
+		$message = $this->build( $post_id, $template );
+
+		if ( 'twitter' !== strtolower( $service ) ) {
+			return $message;
+		}
+
+		$url = (string) get_permalink( $post_id );
+
+		if ( '' !== $url && false !== strpos( $message, $url ) ) {
+			$prefix = trim( str_replace( $url, '', $message ) );
+
+			if ( $this->utf16_length( $prefix ) + 24 <= 280 ) {
+				return $message;
+			}
+
+			return $this->truncate_utf16( $prefix, 256 ) . "…\n" . $url;
+		}
+
+		return $this->truncate_utf16( $message, 279 ) . '…';
+	}
+
+	/**
+	 * Count UTF-16 code units used by Buffer's text validation.
+	 *
+	 * @param string $value Text to measure.
+	 * @return int
+	 */
+	private function utf16_length( string $value ): int {
+		return (int) ( strlen( mb_convert_encoding( $value, 'UTF-16LE', 'UTF-8' ) ) / 2 );
+	}
+
+	/**
+	 * Truncate text without splitting a UTF-8 character.
+	 *
+	 * @param string $value Text to truncate.
+	 * @param int    $limit Maximum UTF-16 code units.
+	 * @return string
+	 */
+	private function truncate_utf16( string $value, int $limit ): string {
+		$result = '';
+		$used   = 0;
+
+		foreach ( preg_split( '//u', $value, -1, PREG_SPLIT_NO_EMPTY ) as $character ) {
+			$units = $this->utf16_length( $character );
+
+			if ( $used + $units > $limit ) {
+				break;
+			}
+
+			$result .= $character;
+			$used   += $units;
+		}
+
+		return rtrim( $result );
+	}
+
+	/**
 	 * Return the featured image URL for a post.
 	 *
 	 * @param int $post_id Post ID.

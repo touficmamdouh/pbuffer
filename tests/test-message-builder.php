@@ -156,4 +156,19 @@ final class Test_Message_Builder extends WP_UnitTestCase {
 
         $this->assertNull( $this->builder->image_url( $post_id ) );
     }
+
+    public function test_twitter_message_is_shortened_while_preserving_url(): void
+    {
+        $post_id = self::factory()->post->create(
+            [
+                'post_title'   => str_repeat( 'Long title ', 30 ),
+                'post_content' => str_repeat( 'Long content ', 30 ),
+            ]
+        );
+
+        $message = $this->builder->build_for_service( $post_id, '{title}\n{excerpt}\n{url}', 'twitter' );
+
+        $this->assertLessThanOrEqual( 280, (int) ( strlen( mb_convert_encoding( $message, 'UTF-16LE', 'UTF-8' ) ) / 2 ) );
+        $this->assertStringContainsString( get_permalink( $post_id ), $message );
+    }
 }
