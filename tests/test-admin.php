@@ -48,6 +48,9 @@ final class Test_Admin extends WP_UnitTestCase {
         $this->assertStringContainsString( 'lightweb2_settings[token]', $html );
         $this->assertStringContainsString( 'Token is set', $html );
         $this->assertStringContainsString( 'lightweb2-articles', $html );
+        $this->assertStringContainsString( 'lightweb2-main-dashboard', $html );
+        $this->assertStringContainsString( 'lightweb2-side-rail', $html );
+        $this->assertStringContainsString( 'lightweb2-message-grid', $html );
         $this->assertStringContainsString( 'lightweb2-variable-button', $html );
         $this->assertStringNotContainsString( 'secret-token-value', $html );
     }

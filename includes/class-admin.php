@@ -519,7 +519,11 @@ final class Admin {
 				<a href="<?php echo esc_url( add_query_arg( array( 'page' => 'lightweb2-activity' ), admin_url( 'admin.php' ) ) ); ?>"><span class="dashicons dashicons-clock" aria-hidden="true"></span><?php esc_html_e( 'Activity', 'lightweb2-publish-with-buffer' ); ?></a>
 			</nav>
 
-			<section id="lightweb2-articles" class="lightweb2-card lightweb2-card--manual-publish">
+			<form action="options.php" method="post" class="lightweb2-form">
+				<?php settings_fields( 'lightweb2_settings_group' ); ?>
+
+				<div class="lightweb2-main-dashboard">
+					<section id="lightweb2-articles" class="lightweb2-card lightweb2-card--manual-publish">
 				<div class="lightweb2-section-heading">
 					<div>
 						<p class="lightweb2-eyebrow"><?php esc_html_e( 'Manual publishing', 'lightweb2-publish-with-buffer' ); ?></p>
@@ -534,7 +538,7 @@ final class Admin {
 				<?php if ( empty( $recent_posts ) ) : ?>
 					<p class="description"><?php esc_html_e( 'No published articles found yet.', 'lightweb2-publish-with-buffer' ); ?></p>
 				<?php else : ?>
-					<div class="lightweb2-post-list">
+						<div class="lightweb2-post-list" tabindex="0" aria-label="<?php esc_attr_e( 'Latest published articles', 'lightweb2-publish-with-buffer' ); ?>">
 						<?php foreach ( $recent_posts as $recent_post ) : ?>
 							<?php
 							$recent_title = get_the_title( $recent_post );
@@ -554,12 +558,10 @@ final class Admin {
 						<?php endforeach; ?>
 					</div>
 				<?php endif; ?>
-			</section>
+					</section>
 
-			<form action="options.php" method="post" class="lightweb2-form">
-				<?php settings_fields( 'lightweb2_settings_group' ); ?>
-
-				<section id="lightweb2-connection" class="lightweb2-card lightweb2-card--connection">
+					<aside class="lightweb2-side-rail">
+					<section id="lightweb2-connection" class="lightweb2-card lightweb2-card--connection">
 					<h2><?php esc_html_e( 'Connection', 'lightweb2-publish-with-buffer' ); ?></h2>
 					<p class="description"><?php esc_html_e( 'Create a personal API key in Buffer, then paste it here.', 'lightweb2-publish-with-buffer' ); ?></p>
 					<label for="lightweb2-token" class="lightweb2-label"><?php esc_html_e( 'Buffer API Token', 'lightweb2-publish-with-buffer' ); ?></label>
@@ -610,7 +612,7 @@ final class Admin {
 					</div>
 				</section>
 
-				<section id="lightweb2-message" class="lightweb2-card lightweb2-card--publishing">
+				<section class="lightweb2-card lightweb2-card--publishing-defaults">
 					<h2><?php esc_html_e( 'Publishing defaults', 'lightweb2-publish-with-buffer' ); ?></h2>
 					<label for="lightweb2-mode" class="lightweb2-label"><?php esc_html_e( 'Default mode', 'lightweb2-publish-with-buffer' ); ?></label>
 					<select id="lightweb2-mode" name="lightweb2_settings[default_mode]">
@@ -618,15 +620,34 @@ final class Admin {
 						<option value="shareNow" <?php selected( $settings['default_mode'], 'shareNow' ); ?>><?php esc_html_e( 'Share Now', 'lightweb2-publish-with-buffer' ); ?></option>
 					</select>
 
-					<label for="lightweb2-template" class="lightweb2-label"><?php esc_html_e( 'Message template', 'lightweb2-publish-with-buffer' ); ?></label>
-					<textarea id="lightweb2-template" name="lightweb2_settings[template]" rows="5" class="large-text"><?php echo esc_textarea( $settings['template'] ); ?></textarea>
-					<div class="lightweb2-variable-list" aria-label="<?php esc_attr_e( 'Template variables', 'lightweb2-publish-with-buffer' ); ?>">
-						<?php foreach ( array( '{title}', '{excerpt}', '{url}', '{author}', '{category}', '{tags}' ) as $variable ) : ?>
-							<button type="button" class="button lightweb2-variable-button" data-variable="<?php echo esc_attr( $variable ); ?>" title="<?php esc_attr_e( 'Insert variable', 'lightweb2-publish-with-buffer' ); ?>"><?php echo esc_html( $variable ); ?></button>
-						<?php endforeach; ?>
+				</section>
+					</aside>
+				</div>
+
+				<section id="lightweb2-message" class="lightweb2-card lightweb2-message-card">
+					<div class="lightweb2-section-heading">
+						<div>
+							<p class="lightweb2-eyebrow"><?php esc_html_e( 'Publishing content', 'lightweb2-publish-with-buffer' ); ?></p>
+							<h2><?php esc_html_e( 'Message template', 'lightweb2-publish-with-buffer' ); ?></h2>
+							<p class="description"><?php esc_html_e( 'Choose the text Buffer will use when you publish an article.', 'lightweb2-publish-with-buffer' ); ?></p>
+						</div>
 					</div>
-					<label class="lightweb2-label"><?php esc_html_e( 'Preview', 'lightweb2-publish-with-buffer' ); ?></label>
-					<pre id="lightweb2-preview" class="lightweb2-preview"><?php echo esc_html( strtr( (string) $settings['template'], $preview_values ) ); ?></pre>
+					<div class="lightweb2-message-grid">
+						<div class="lightweb2-editor-column">
+							<label for="lightweb2-template" class="lightweb2-label"><?php esc_html_e( 'Message template', 'lightweb2-publish-with-buffer' ); ?></label>
+							<textarea id="lightweb2-template" name="lightweb2_settings[template]" rows="5" class="large-text"><?php echo esc_textarea( $settings['template'] ); ?></textarea>
+							<div class="lightweb2-variable-list" aria-label="<?php esc_attr_e( 'Template variables', 'lightweb2-publish-with-buffer' ); ?>">
+								<?php foreach ( array( '{title}', '{excerpt}', '{url}', '{author}', '{category}', '{tags}' ) as $variable ) : ?>
+									<button type="button" class="button lightweb2-variable-button" data-variable="<?php echo esc_attr( $variable ); ?>" title="<?php esc_attr_e( 'Insert variable', 'lightweb2-publish-with-buffer' ); ?>"><?php echo esc_html( $variable ); ?></button>
+								<?php endforeach; ?>
+							</div>
+						</div>
+						<div class="lightweb2-preview-column">
+							<div class="lightweb2-preview-heading"><span class="dashicons dashicons-visibility" aria-hidden="true"></span><span><?php esc_html_e( 'Live preview', 'lightweb2-publish-with-buffer' ); ?></span></div>
+							<p class="description"><?php esc_html_e( 'This is how the message will look when sent to Buffer.', 'lightweb2-publish-with-buffer' ); ?></p>
+							<pre id="lightweb2-preview" class="lightweb2-preview"><?php echo esc_html( strtr( (string) $settings['template'], $preview_values ) ); ?></pre>
+						</div>
+					</div>
 				</section>
 
 				<div class="lightweb2-utility-bar">

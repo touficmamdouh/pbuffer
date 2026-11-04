@@ -1305,3 +1305,162 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Final dashboard composition: articles and publishing controls share the first viewport. */
+.lightweb2-form {
+  display: block;
+}
+
+.lightweb2-main-dashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1.85fr) minmax(300px, 1fr);
+  gap: 18px;
+  align-items: start;
+  direction: ltr;
+}
+
+.lightweb2-main-dashboard > * {
+  direction: rtl;
+}
+
+.lightweb2-main-dashboard .lightweb2-card {
+  margin: 0;
+}
+
+.lightweb2-side-rail {
+  min-width: 0;
+}
+
+.lightweb2-card--publishing-defaults select {
+  width: 100%;
+  min-height: 40px;
+}
+
+.lightweb2-post-list {
+  scrollbar-gutter: stable;
+}
+
+.lightweb2-message-card {
+  margin-top: 18px;
+}
+
+.lightweb2-message-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 22px;
+  align-items: stretch;
+  direction: ltr;
+  margin-top: 18px;
+}
+
+.lightweb2-editor-column,
+.lightweb2-preview-column {
+  min-width: 0;
+  direction: rtl;
+}
+
+.lightweb2-editor-column .lightweb2-label {
+  margin-top: 0;
+}
+
+.lightweb2-preview-column {
+  padding: 16px;
+  background: #f6f8fc;
+  border: 1px solid var(--lightweb2-line);
+  border-radius: 10px;
+}
+
+.lightweb2-preview-heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--lightweb2-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.lightweb2-preview-heading .dashicons {
+  color: var(--lightweb2-blue-dark);
+}
+
+.lightweb2-preview-column .description {
+  margin: 6px 0 0;
+  font-size: 11px;
+}
+
+.lightweb2-preview-column .lightweb2-preview {
+  min-height: 172px;
+  margin: 14px 0 0;
+  padding: 16px;
+  color: var(--lightweb2-ink);
+  background: #fff;
+  border: 1px solid var(--lightweb2-line);
+  border-radius: 9px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 961px) {
+  .lightweb2-post-list {
+    max-height: 560px;
+    overflow-y: auto;
+    padding-inline-end: 4px;
+  }
+}
+
+@media (max-width: 960px) and (min-width: 681px) {
+  .lightweb2-main-dashboard {
+    grid-template-columns: minmax(0, 1.3fr) minmax(270px, 0.9fr);
+    gap: 14px;
+  }
+
+  .lightweb2-post-row {
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .lightweb2-post-row .lightweb2-category-badge {
+    display: none;
+  }
+
+  .lightweb2-message-grid {
+    gap: 16px;
+  }
+}
+
+@media (max-width: 680px) {
+  .lightweb2-main-dashboard,
+  .lightweb2-message-grid {
+    display: block;
+  }
+
+  .lightweb2-side-rail {
+    margin-top: 18px;
+  }
+
+  .lightweb2-side-rail .lightweb2-card + .lightweb2-card {
+    margin-top: 14px;
+  }
+
+  .lightweb2-post-list {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .lightweb2-message-grid .lightweb2-preview-column {
+    margin-top: 18px;
+  }
+
+  .lightweb2-manual-publish {
+    min-width: 96px;
+    padding-inline: 8px;
+    font-size: 11px;
+  }
+
+  .lightweb2-manual-publish .dashicons {
+    margin-inline-end: 3px;
+  }
+}
