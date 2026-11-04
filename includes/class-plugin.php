@@ -71,6 +71,13 @@ final class Plugin {
 	private Meta_Box $meta_box;
 
 	/**
+	 * GitHub update service.
+	 *
+	 * @var Updater
+	 */
+	private Updater $updater;
+
+	/**
 	 * Return the shared plugin instance.
 	 *
 	 * @return Plugin
@@ -101,10 +108,12 @@ final class Plugin {
 		);
 		$this->admin      = new Admin( $this->settings, $this->client, $this->deliveries, $this->publisher );
 		$this->meta_box   = new Meta_Box( $this->settings, $this->deliveries );
+		$this->updater    = new Updater();
 
 		$this->settings->register();
 		$this->admin->register();
 		$this->meta_box->register();
 		$this->publisher->register();
+		$this->updater->register();
 	}
 }
