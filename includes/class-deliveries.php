@@ -350,12 +350,18 @@ final class Deliveries {
 		$params[]           = $per_page;
 		$params[]           = $offset;
 
-		$sql = "SELECT * FROM {$this->table} {$where}
-                ORDER BY created_at DESC, id DESC
-                LIMIT %d OFFSET %d";
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Plugin-owned table.
-		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; the WHERE clause is assembled from internal column names and placeholders.
+		$rows = $wpdb->get_results(
+			// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The dynamic list contains the two LIMIT/OFFSET values appended above.
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Table name and WHERE fragments are built internally; the parameter list is dynamic.
+				"SELECT * FROM {$this->table} {$where}
+				 ORDER BY created_at DESC, id DESC
+				 LIMIT %d OFFSET %d",
+				...$params
+			),
+			ARRAY_A
+		);
 
 		return is_array( $rows ) ? $rows : array();
 	}
@@ -370,15 +376,20 @@ final class Deliveries {
 		global $wpdb;
 
 		[ $where, $params ] = $this->build_where( $args );
-		$sql                = "SELECT COUNT(*) FROM {$this->table} {$where}";
-
 		if ( empty( $params ) ) {
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Plugin-owned table.
-			return (int) $wpdb->get_var( $sql );
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Plugin-owned table; the WHERE clause contains only internal SQL fragments.
+			return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$this->table} {$where}" );
 		}
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Plugin-owned table.
-		return (int) $wpdb->get_var( $wpdb->prepare( $sql, $params ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; the WHERE clause is assembled from internal column names and placeholders.
+		return (int) $wpdb->get_var(
+			// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- The dynamic list is empty only in the branch above; this branch always has filters.
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Table name and WHERE fragments are built internally; the parameter list is dynamic.
+				"SELECT COUNT(*) FROM {$this->table} {$where}",
+				...$params
+			)
+		);
 	}
 
 	/**
