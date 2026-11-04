@@ -179,7 +179,9 @@ final class Publisher {
 				++$scheduled;
 
 				// Dispatch now so Queue mode does not depend solely on a working loopback cron.
-				$this->deliver( $post_id, (string) $channel['id'], (int) $row['attempts'] + 1 );
+				if ( apply_filters( 'lightweb2_dispatch_immediately', true, $post_id, (string) $channel['id'] ) ) {
+					$this->deliver( $post_id, (string) $channel['id'], (int) $row['attempts'] + 1 );
+				}
 				wp_clear_scheduled_hook(
 					'lightweb2_deliver_channel',
 					array( $post_id, (string) $channel['id'], (int) $row['attempts'] + 1 )

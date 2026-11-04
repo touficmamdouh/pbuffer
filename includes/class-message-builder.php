@@ -116,11 +116,13 @@ final class Message_Builder {
 		if ( '' !== $url && false !== strpos( $message, $url ) ) {
 			$prefix = trim( str_replace( $url, '', $message ) );
 
-			if ( $this->utf16_length( $prefix ) + 24 <= 280 ) {
+			if ( $this->utf16_length( $prefix ) + $this->utf16_length( "…\n" . $url ) <= 279 ) {
 				return $message;
 			}
 
-			return $this->truncate_utf16( $prefix, 254 ) . "…\n" . $url;
+			$available = max( 0, 279 - $this->utf16_length( "…\n" . $url ) );
+
+			return $this->truncate_utf16( $prefix, $available ) . "…\n" . $url;
 		}
 
 		return $this->truncate_utf16( $message, 279 ) . '…';

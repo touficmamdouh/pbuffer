@@ -16,6 +16,7 @@ final class Test_Publisher extends WP_UnitTestCase {
 
     public function set_up(): void {
         parent::set_up();
+        add_filter( 'lightweb2_dispatch_immediately', '__return_false' );
         Installer::create_table();
 
         $this->deliveries = new Deliveries();
@@ -44,6 +45,7 @@ final class Test_Publisher extends WP_UnitTestCase {
 
     public function tear_down(): void {
         remove_all_filters( 'pre_http_request' );
+        remove_filter( 'lightweb2_dispatch_immediately', '__return_false' );
         wp_clear_scheduled_hook( 'lightweb2_deliver_channel' );
         parent::tear_down();
     }

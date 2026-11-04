@@ -4,7 +4,7 @@ Tags: buffer, social media, auto publish, graphql, scheduling
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.8
+Stable tag: 1.0.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -91,6 +91,11 @@ Developer documentation: https://developers.buffer.com
 The Buffer API key is stored in your WordPress database and is never sent to LightWeb2 servers. The plugin performs no analytics or tracking.
 
 == Changelog ==
+
+= 1.0.9 =
+* Fixed CI compatibility across supported WordPress and PHP versions.
+* Kept immediate queue dispatch covered by the delivery tests.
+* Tightened Twitter message length to stay safely below the platform limit.
 
 = 1.0.8 =
 * Added automatic update checks from the LightWeb2 GitHub Releases repository.

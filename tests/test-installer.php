@@ -29,14 +29,14 @@ final class Test_Installer extends WP_UnitTestCase {
 
         $this->assertSame( 'addToQueue', $settings['default_mode'] );
         $this->assertSame( 30, $settings['retention_days'] );
-        $this->assertSame(
-            'no',
+        $this->assertContains(
             $wpdb->get_var(
                 $wpdb->prepare(
                     "SELECT autoload FROM {$wpdb->options} WHERE option_name = %s",
                     Settings::OPTION
                 )
-            )
+            ),
+            [ 'no', 'off' ]
         );
     }
 
