@@ -192,6 +192,19 @@ final class Buffer_Client {
 			);
 		}
 
+		if ( is_array( $decoded ) && ! empty( $decoded['errors'] ) && is_array( $decoded['errors'] ) ) {
+			$error   = $decoded['errors'][0];
+			$code    = isset( $error['extensions']['code'] )
+				? sanitize_key( (string) $error['extensions']['code'] )
+				: 'graphql_error';
+			$message = isset( $error['message'] )
+				? sanitize_text_field( (string) $error['message'] )
+				: __( 'Buffer returned an error.', 'lightweb2-publish-with-buffer' );
+			$retry   = in_array( $code, array( 'rate_limit_exceeded', 'unexpected' ), true );
+
+			return $this->failure( $code, $message, $retry );
+		}
+
 		if ( $status >= 400 ) {
 			return $this->failure(
 				'http_error',
@@ -210,19 +223,6 @@ final class Buffer_Client {
 				__( 'Buffer returned an invalid response.', 'lightweb2-publish-with-buffer' ),
 				true
 			);
-		}
-
-		if ( ! empty( $decoded['errors'] ) && is_array( $decoded['errors'] ) ) {
-			$error   = $decoded['errors'][0];
-			$code    = isset( $error['extensions']['code'] )
-				? sanitize_key( (string) $error['extensions']['code'] )
-				: 'graphql_error';
-			$message = isset( $error['message'] )
-				? sanitize_text_field( (string) $error['message'] )
-				: __( 'Buffer returned an error.', 'lightweb2-publish-with-buffer' );
-			$retry   = in_array( $code, array( 'rate_limit_exceeded', 'unexpected' ), true );
-
-			return $this->failure( $code, $message, $retry );
 		}
 
 		if ( empty( $decoded['data'] ) || ! is_array( $decoded['data'] ) ) {

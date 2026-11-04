@@ -114,6 +114,27 @@ final class Test_Buffer_Client extends WP_UnitTestCase {
         $this->assertTrue( $result['retryable'] );
     }
 
+    public function test_http_400_returns_buffer_graphql_error_message(): void {
+        $this->mock_response(
+            [
+                'errors' => [
+                    [
+                        'message'    => 'Variable $input got invalid value for channelId',
+                        'extensions' => [ 'code' => 'BAD_USER_INPUT' ],
+                    ],
+                ],
+            ],
+            400
+        );
+
+        $result = $this->client->test_connection( 'test-token' );
+
+        $this->assertFalse( $result['success'] );
+        $this->assertSame( 'bad_user_input', $result['code'] );
+        $this->assertSame( 'Variable $input got invalid value for channelId', $result['message'] );
+        $this->assertFalse( $result['retryable'] );
+    }
+
     public function test_create_post_returns_buffer_post_id(): void {
         $this->mock_response(
             [
