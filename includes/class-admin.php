@@ -357,7 +357,7 @@ final class Admin {
 			<form action="options.php" method="post" class="lightweb2-form">
 				<?php settings_fields( 'lightweb2_settings_group' ); ?>
 
-				<section class="lightweb2-card">
+				<section class="lightweb2-card lightweb2-card--connection">
 					<h2><?php esc_html_e( 'Connection', 'lightweb2-publish-with-buffer' ); ?></h2>
 					<p class="description"><?php esc_html_e( 'Create a personal API key in Buffer, then paste it here.', 'lightweb2-publish-with-buffer' ); ?></p>
 					<label for="lightweb2-token" class="lightweb2-label"><?php esc_html_e( 'Buffer API Token', 'lightweb2-publish-with-buffer' ); ?></label>
@@ -385,7 +385,7 @@ final class Admin {
 					<p class="lightweb2-ajax-status" id="lightweb2-ajax-status" role="status" aria-live="polite"></p>
 				</section>
 
-				<section class="lightweb2-card">
+				<section class="lightweb2-card lightweb2-card--channels">
 					<h2><?php esc_html_e( 'Channels', 'lightweb2-publish-with-buffer' ); ?></h2>
 					<input type="hidden" name="lightweb2_settings[channels_submitted]" value="1" />
 					<div id="lightweb2-channels" class="lightweb2-channels">
@@ -408,7 +408,7 @@ final class Admin {
 					</div>
 				</section>
 
-				<section class="lightweb2-card">
+				<section class="lightweb2-card lightweb2-card--publishing">
 					<h2><?php esc_html_e( 'Publishing defaults', 'lightweb2-publish-with-buffer' ); ?></h2>
 					<label for="lightweb2-mode" class="lightweb2-label"><?php esc_html_e( 'Default mode', 'lightweb2-publish-with-buffer' ); ?></label>
 					<select id="lightweb2-mode" name="lightweb2_settings[default_mode]">
@@ -427,7 +427,7 @@ final class Admin {
 					<pre id="lightweb2-preview" class="lightweb2-preview"></pre>
 				</section>
 
-				<section class="lightweb2-card">
+				<section class="lightweb2-card lightweb2-card--filtering">
 					<h2><?php esc_html_e( 'Filtering', 'lightweb2-publish-with-buffer' ); ?></h2>
 					<label for="lightweb2-category" class="lightweb2-label"><?php esc_html_e( 'Category filter', 'lightweb2-publish-with-buffer' ); ?></label>
 					<?php
@@ -444,7 +444,7 @@ final class Admin {
 					?>
 				</section>
 
-				<section class="lightweb2-card">
+				<section class="lightweb2-card lightweb2-card--tools">
 					<h2><?php esc_html_e( 'Tools', 'lightweb2-publish-with-buffer' ); ?></h2>
 					<label for="lightweb2-retention" class="lightweb2-label"><?php esc_html_e( 'Keep delivery history for', 'lightweb2-publish-with-buffer' ); ?></label>
 					<input type="number" id="lightweb2-retention" name="lightweb2_settings[retention_days]" min="1" max="365" value="<?php echo esc_attr( (string) $settings['retention_days'] ); ?>" class="small-text" />
@@ -531,10 +531,11 @@ final class Admin {
 				<?php submit_button( __( 'Filter', 'lightweb2-publish-with-buffer' ), '', '', false ); ?>
 			</form>
 
-			<div class="lightweb2-card">
+			<div class="lightweb2-card lightweb2-card--activity-table">
 				<?php if ( empty( $rows ) ) : ?>
 					<p><?php esc_html_e( 'No deliveries yet. Publish a post with Buffer enabled to see activity here.', 'lightweb2-publish-with-buffer' ); ?></p>
 				<?php else : ?>
+					<div class="lightweb2-table-scroll">
 					<table class="widefat striped lightweb2-activity-table">
 						<thead>
 							<tr>
@@ -584,6 +585,7 @@ final class Admin {
 							<?php endforeach; ?>
 						</tbody>
 					</table>
+					</div>
 
 					<?php if ( $pages > 1 ) : ?>
 						<div class="tablenav"><div class="tablenav-pages">
