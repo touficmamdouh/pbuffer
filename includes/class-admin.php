@@ -73,6 +73,7 @@ final class Admin {
 		add_action( 'wp_ajax_lightweb2_test_connection', array( $this, 'ajax_test_connection' ) );
 		add_action( 'wp_ajax_lightweb2_fetch_channels', array( $this, 'ajax_fetch_channels' ) );
 		add_action( 'wp_ajax_lightweb2_disconnect', array( $this, 'ajax_disconnect' ) );
+		add_action( 'wp_ajax_lightweb2_manual_publish', array( $this, 'ajax_manual_publish' ) );
 		add_action( 'wp_ajax_lightweb2_retry_delivery', array( $this, 'ajax_retry_delivery' ) );
 		add_action( 'wp_ajax_lightweb2_clear_logs', array( $this, 'ajax_clear_logs' ) );
 	}
@@ -172,6 +173,8 @@ final class Admin {
 					'error'             => __( 'Could not reach Buffer. Check the token and try again.', 'lightweb2-publish-with-buffer' ),
 					'confirmDisconnect' => __( 'Disconnect Buffer and clear the selected channels?', 'lightweb2-publish-with-buffer' ),
 					'confirmClearLogs'  => __( 'Delete all delivery history? This cannot be undone. Clearing history also removes duplicate protection, so future publishes may be sent to Buffer again.', 'lightweb2-publish-with-buffer' ),
+					'manualPublishing'  => __( 'Queueing post…', 'lightweb2-publish-with-buffer' ),
+					'manualQueued'      => __( 'Queued', 'lightweb2-publish-with-buffer' ),
 				),
 			)
 		);
@@ -330,6 +333,27 @@ final class Admin {
 	}
 
 	/**
+	 * Queue a published post from the manual publishing screen.
+	 *
+	 * @return void
+	 */
+	public function ajax_manual_publish(): void {
+		$this->verify_ajax();
+
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Verified by verify_ajax().
+		$post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+
+		$result = $this->publisher->queue_post( $post_id );
+
+		if ( ! $result['success'] ) {
+			wp_send_json_error( array( 'message' => $result['message'] ), 400 );
+		}
+
+		wp_send_json_success( array( 'message' => $result['message'] ) );
+	}
+
+	/**
 	 * Render the settings screen.
 	 *
 	 * @return void
@@ -339,8 +363,17 @@ final class Admin {
 			return;
 		}
 
-		$settings  = $this->settings->get();
-		$has_token = '' !== (string) $settings['token'];
+		$settings     = $this->settings->get();
+		$has_token    = '' !== (string) $settings['token'];
+		$recent_posts = get_posts(
+			array(
+				'post_type'      => 'post',
+				'post_status'    => 'publish',
+				'posts_per_page' => 20,
+				'orderby'        => 'date',
+				'order'          => 'DESC',
+			)
+		);
 		?>
 		<div class="wrap lightweb2-wrap">
 			<header class="lightweb2-header">
@@ -353,6 +386,34 @@ final class Admin {
 			</header>
 
 			<?php settings_errors(); ?>
+
+			<section class="lightweb2-card lightweb2-card--manual-publish">
+				<div class="lightweb2-section-heading">
+					<div>
+						<h2><?php esc_html_e( 'Publish an article', 'lightweb2-publish-with-buffer' ); ?></h2>
+						<p class="description"><?php esc_html_e( 'Choose one of your latest published articles and send it to the selected Buffer channels.', 'lightweb2-publish-with-buffer' ); ?></p>
+					</div>
+					<span class="lightweb2-count"><?php echo esc_html( (string) count( $recent_posts ) ); ?>/20</span>
+				</div>
+				<?php if ( empty( $recent_posts ) ) : ?>
+					<p class="description"><?php esc_html_e( 'No published articles found yet.', 'lightweb2-publish-with-buffer' ); ?></p>
+				<?php else : ?>
+					<div class="lightweb2-post-list">
+						<?php foreach ( $recent_posts as $recent_post ) : ?>
+							<article class="lightweb2-post-row">
+								<div class="lightweb2-post-copy">
+									<?php $recent_title = get_the_title( $recent_post ); ?>
+									<strong><?php echo esc_html( $recent_title ? $recent_title : __( '(Untitled)', 'lightweb2-publish-with-buffer' ) ); ?></strong>
+									<small><?php echo esc_html( get_the_date( '', $recent_post ) ); ?></small>
+								</div>
+								<button type="button" class="button lightweb2-manual-publish" data-post-id="<?php echo esc_attr( (string) $recent_post->ID ); ?>">
+									<?php esc_html_e( 'Publish', 'lightweb2-publish-with-buffer' ); ?>
+								</button>
+							</article>
+						<?php endforeach; ?>
+					</div>
+				<?php endif; ?>
+			</section>
 
 			<form action="options.php" method="post" class="lightweb2-form">
 				<?php settings_fields( 'lightweb2_settings_group' ); ?>

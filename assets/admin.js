@@ -138,6 +138,24 @@
     }
   });
 
+  document.querySelectorAll('.lightweb2-manual-publish').forEach((button) => {
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      setAjaxStatus(cfg.strings.manualPublishing);
+
+      try {
+        const data = await request('lightweb2_manual_publish', {
+          post_id: button.dataset.postId,
+        });
+        setAjaxStatus(data.message || '');
+        button.textContent = cfg.strings.manualQueued;
+      } catch (error) {
+        button.disabled = false;
+        setAjaxStatus(error.message, true);
+      }
+    });
+  });
+
   document.querySelectorAll('.lightweb2-retry').forEach((button) => {
     button.addEventListener('click', async () => {
       button.disabled = true;

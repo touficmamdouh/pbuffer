@@ -183,6 +183,18 @@ final class Test_Publisher extends WP_UnitTestCase {
         $this->assertSame( 'buffer-1', $row['buffer_post_id'] );
     }
 
+    public function test_manual_queue_publishes_even_when_post_toggle_is_disabled(): void {
+        $post_id = $this->published_post( false );
+
+        $result = $this->publisher->queue_post( $post_id );
+
+        $this->assertTrue( $result['success'] );
+        $this->assertSame( 1, $result['scheduled'] );
+        $this->assertNotFalse(
+            wp_next_scheduled( 'lightweb2_deliver_channel', [ $post_id, 'c1', 1 ] )
+        );
+    }
+
     public function test_facebook_delivery_includes_default_post_type(): void {
         update_option(
             Settings::OPTION,

@@ -125,11 +125,44 @@ final class Publisher {
 			}
 		}
 
-		$mode    = get_post_meta( $post_id, '_lightweb2_mode', true );
-		$mode    = in_array( $mode, array( 'shareNow', 'addToQueue' ), true )
+		$this->queue_post( $post_id );
+	}
+
+	/**
+	 * Queue a published post for its selected Buffer channels.
+	 *
+	 * This is also used by the manual publishing screen and intentionally does
+	 * not require the per-post automatic publishing toggle.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return array{success: bool, message: string, scheduled: int}
+	 */
+	public function queue_post( int $post_id ): array {
+		$post = get_post( $post_id );
+
+		if ( ! $post instanceof \WP_Post || 'publish' !== $post->post_status ) {
+			return array(
+				'success'   => false,
+				'message'   => __( 'Only published posts can be sent to Buffer.', 'lightweb2-publish-with-buffer' ),
+				'scheduled' => 0,
+			);
+		}
+
+		$settings = $this->settings->get();
+
+		if ( '' === (string) $settings['token'] || empty( $settings['channels'] ) ) {
+			return array(
+				'success'   => false,
+				'message'   => __( 'Connect Buffer and select at least one channel first.', 'lightweb2-publish-with-buffer' ),
+				'scheduled' => 0,
+			);
+		}
+
+		$mode      = get_post_meta( $post_id, '_lightweb2_mode', true );
+		$mode      = in_array( $mode, array( 'shareNow', 'addToQueue' ), true )
 			? $mode
 			: (string) $settings['default_mode'];
-		$message = $this->builder->build( $post_id, (string) $settings['template'] );
+		$scheduled = 0;
 
 		foreach ( $settings['channels'] as $channel ) {
 			$row = $this->deliveries->create_or_get( $post_id, $channel, $mode );
@@ -138,21 +171,29 @@ final class Publisher {
 				continue;
 			}
 
-			if ( '' === $message ) {
-				$this->deliveries->mark_failed(
-					(int) $row['id'],
-					'empty_message',
-					__( 'The message template produced an empty post.', 'lightweb2-publish-with-buffer' )
-				);
-				continue;
-			}
-
 			if ( (int) $row['attempts'] >= 4 ) {
 				continue;
 			}
 
-			$this->schedule_delivery( $post_id, (string) $channel['id'], (int) $row['attempts'] + 1 );
+			if ( $this->schedule_delivery( $post_id, (string) $channel['id'], (int) $row['attempts'] + 1 ) ) {
+				++$scheduled;
+			}
 		}
+
+		if ( 0 === $scheduled ) {
+			return array(
+				'success'   => true,
+				'message'   => __( 'This post is already sent or queued for the selected channels.', 'lightweb2-publish-with-buffer' ),
+				'scheduled' => 0,
+			);
+		}
+
+		return array(
+			'success'   => true,
+			/* translators: %d: number of channels queued. */
+			'message'   => sprintf( _n( 'Post queued for %d channel.', 'Post queued for %d channels.', $scheduled, 'lightweb2-publish-with-buffer' ), $scheduled ),
+			'scheduled' => $scheduled,
+		);
 	}
 
 	/**

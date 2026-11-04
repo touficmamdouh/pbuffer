@@ -82,6 +82,82 @@
   box-shadow: 0 2px 8px rgb(20 32 51 / 4%);
 }
 
+.lightweb2-card--manual-publish {
+  margin-bottom: 18px;
+}
+
+.lightweb2-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.lightweb2-section-heading .description {
+  max-width: 68ch;
+}
+
+.lightweb2-count {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  color: var(--lightweb2-ink-soft);
+  background: #f1f4f8;
+  border: 1px solid var(--lightweb2-line);
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.lightweb2-post-list {
+  display: grid;
+  margin-top: 18px;
+  border-top: 1px solid var(--lightweb2-line);
+}
+
+.lightweb2-post-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--lightweb2-line);
+}
+
+.lightweb2-post-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.lightweb2-post-copy strong {
+  overflow: hidden;
+  color: var(--lightweb2-ink);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lightweb2-post-copy small {
+  color: var(--lightweb2-ink-soft);
+  font-size: 11px;
+}
+
+.lightweb2-manual-publish {
+  flex: 0 0 auto;
+  min-width: 82px;
+  border-color: var(--lightweb2-blue);
+  color: var(--lightweb2-blue-dark);
+  font-weight: 600;
+}
+
+.lightweb2-manual-publish:hover,
+.lightweb2-manual-publish:focus {
+  color: #fff;
+  background: var(--lightweb2-blue);
+  border-color: var(--lightweb2-blue);
+}
+
 .lightweb2-card--connection,
 .lightweb2-card--channels,
 .lightweb2-form > .submit {
@@ -453,6 +529,11 @@
 
   .lightweb2-card {
     padding: 20px 18px;
+  }
+
+  .lightweb2-section-heading {
+    flex-direction: column;
+    gap: 8px;
   }
 
   .lightweb2-filters {
