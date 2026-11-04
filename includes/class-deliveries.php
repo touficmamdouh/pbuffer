@@ -350,7 +350,7 @@ final class Deliveries {
 		$params[]           = $per_page;
 		$params[]           = $offset;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; the WHERE clause is assembled from internal column names and placeholders.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Plugin-owned table; $where contains only internal column names and prepare() placeholders.
 		$rows = $wpdb->get_results(
 			// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The dynamic list contains the two LIMIT/OFFSET values appended above.
 			$wpdb->prepare(
@@ -377,11 +377,11 @@ final class Deliveries {
 
 		[ $where, $params ] = $this->build_where( $args );
 		if ( empty( $params ) ) {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Plugin-owned table; the WHERE clause contains only internal SQL fragments.
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Plugin-owned table; $where contains only internal SQL fragments.
 			return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$this->table} {$where}" );
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; the WHERE clause is assembled from internal column names and placeholders.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Plugin-owned table; $where contains only internal column names and prepare() placeholders.
 		return (int) $wpdb->get_var(
 			// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- The dynamic list is empty only in the branch above; this branch always has filters.
 			$wpdb->prepare(
